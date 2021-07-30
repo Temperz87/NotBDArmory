@@ -1,0 +1,18 @@
+{
+  "name": "Not BD Armory",
+  "description": "A mod that strives to add new weapons to VTOL VR. Special thanks to Mallikas, Notboris, and Malx for the models!",
+  "dll_file": "NotBDArmory.dll",
+  "last_edit": 637617116487941746,
+  "pub_id": "",
+  "json_version": "",
+  "version": "",
+  "tagline": "Better than BahamutoD this time.",
+  "repository": "",
+  "is_public": false,
+  "unlisted": false,
+  "preview_image": "",
+  "web_preview_image": "",
+  "dependencies": null,
+  "mod_dependencies": null,
+  "ContentType": 1
+}
