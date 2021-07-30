@@ -79,7 +79,7 @@
     <Compile Include="CustomWeaponHandler.cs" />
     <Compile Include="DebugPatches.cs" />
     <Compile Include="EMP.cs" />
-    <Compile Include="HPEquipSawmMissileLauncher.cs" />
+    <Compile Include="HPEquipSwarmMissileLauncher.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Patches.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
