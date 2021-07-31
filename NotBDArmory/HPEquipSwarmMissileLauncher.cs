@@ -16,8 +16,11 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
     private IRMissileLauncher irml;
     private Dictionary<HeatSeeker, Traverse> seekerTraverses;
     private Dictionary<HeatSeeker, Missile> seekerToMissile;
+    private Transform[] reticles;
     private Traverse irmltraverse;
     private bool raisehell;
+    private HUDWeaponInfo hudReticle;
+    private CollimatedHUDUI hud;
     private void Awake()
     {
         throw new NotImplementedException("Sorry, not done yet.");
@@ -38,6 +41,16 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
         equipFunction.optionReturnLabel = raisehell ? "Multi-Lock" : "Single-Lock";
         equipFunction.optionEvent = new EquipFunction.OptionEvent(CycleMode);
         irmltraverse = Traverse.Create(irml);
+        reticles = new Transform[irml.missileCount];
+        hudReticle = VTOLAPI.GetPlayersVehicleGameObject().GetComponentInChildren<HUDWeaponInfo>();
+        hud = VTOLAPI.GetPlayersVehicleGameObject().GetComponentInChildren<CollimatedHUDUI>();
+        Transform reticleBase = hudReticle.reticleTransforms[3];
+        for (int i = 0; i < reticles.Length; i++)
+        {
+            GameObject newReticle = Instantiate(reticleBase.gameObject, reticleBase.parent);
+            reticles[i] = newReticle.transform;
+            newReticle.SetActive(false);
+        }
     }
     private string CycleMode()
     {
@@ -47,7 +60,8 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
     private void Update()
     {
         if (raisehell)
-            AssignUnfiredMissilesToOneLock();
+            Debug.Log("Not implemented :P");
+        //AssignUnfiredMissilesToOneLock();
         else
         {
             for (int i = 0; i < irml.missileCount; i++)
@@ -87,9 +101,15 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
         {
             Missile missile = data.ms;
             Transform tf = missile.heatSeeker.transform;
-            aimPoints.Add(tf.position + transform.forward * 4000f);
+            Vector3 aimPoint = tf.position + transform.forward * 4000f;
+            aimPoint = (aimPoint - VRHead.position).normalized;
+            aimPoints.Add();
         }
-        AssignTransformsFromList()
+        for (int i = 0; i < aimPoints.Count; i++)
+        {
+            reticles[i].position = aimPoints[i] + VRHead.position * hud.depth;
+            reticles[i].rotation = Quaternion.LookRotation(aimPoints[i], reticles[i].parent.up);
+        }
     }
 
     private bool AlreadyLocked(Missile missile) // this function is ass
@@ -135,6 +155,8 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
             seeker.seekerEnabled = true;
             seeker.EnableAudio();
         }
+        foreach (Transform reticle in reticles)
+            reticle.gameObject.SetActive(true);
     }
     public override void OnDisableWeapon()
     {
@@ -146,6 +168,8 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
             seeker.seekerEnabled = false;
             seeker.DisableAudio();
         }
+        foreach (Transform reticle in reticles)
+            reticle.gameObject.SetActive(false);
     }
     private struct lockData
     {

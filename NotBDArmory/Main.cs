@@ -19,8 +19,6 @@ public class Armory : VTOLMOD
     };
     public void BeginEquipCustomWeapons()
     {
-        if (BOOM.instance == null)
-            Camera.current.gameObject.AddComponent<BOOM>(); // stupid solution time
 
         CustomWeaponHandler handler = null;
         handler = VTOLAPI.GetPlayersVehicleGameObject().GetComponent<CustomWeaponHandler>();
@@ -32,9 +30,9 @@ public class Armory : VTOLMOD
                 RestartedLoadout = new Loadout();
                 RestartedLoadout.hpLoadout = (string[])sloadout.hpLoadout.Clone();
                 handler.EquipCustomWeapons(sloadout);
+                sloadout = null;
             }
             else
-                if (sloadout != null)
                 handler.EquipCustomWeapons(RestartedLoadout);
         }
     }
@@ -59,7 +57,12 @@ public class Armory : VTOLMOD
             patched = true;
             VTOLAPI.SceneLoaded += SceneChanged; // So when the scene is changed SceneChanged is called
             VTOLAPI.MissionReloaded += BeginEquipCustomWeapons;
-            //VTOLAPI.MissionReloaded += DoMain;
+            if (BOOM.instance == null)
+            {
+                GameObject BOOMObject = Instantiate(new GameObject()); // stupid solution time
+                BOOMObject.AddComponent<BOOM>();
+                DontDestroyOnLoad(BOOMObject);
+            }
         }
         base.ModLoaded();
     }
@@ -138,6 +141,7 @@ public class Armory : VTOLMOD
         AudioSource originalSeeker = dummyMissile.transform.Find("SeekerParent").Find("SeekerAudio").GetComponent<AudioSource>();
         copiedSeeker.clip = Instantiate(originalSeeker.clip);
         copiedSeeker.outputAudioMixerGroup = Instantiate(originalSeeker.outputAudioMixerGroup);
+        
         AudioSource copiedLock = parent.Find("LockToneAudio").GetComponent<AudioSource>();
         AudioSource originalLock = dummyMissile.transform.Find("SeekerParent").Find("LockToneAudio").GetComponent<AudioSource>();
         copiedLock.clip = Instantiate(originalLock.clip);
@@ -150,7 +154,7 @@ public class Armory : VTOLMOD
         irml.shortName = "AIM-280";
         irml.description = "An IR guided Air to Air missile that fries any electronics in its blast radius.";
         irml.ml.missilePrefab = missileObject;
-        irml.allowedHardpoints = "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,18,20";
+        irml.allowedHardpoints = "1,2,3,4,5,6,7,8,9,10"; ;
         irml.ml.loadOnStart = true;
         DontDestroyOnLoad(missileObject);
         DontDestroyOnLoad(dummyEquipper);
@@ -165,21 +169,22 @@ public class Armory : VTOLMOD
     private IEnumerator LoadB61(GameObject equipObject, GameObject nukeObject)
     {
         GameObject b61 = Instantiate(nukeObject);
-        b61.GetComponentInChildren<Missile>().OnMissileDetonated += (m) => { BOOM.instance.DoNukeExplode(m.transform.position); };
+        b61.AddComponent<Nuke>();
         GameObject newEquip = Instantiate(equipObject);
         MissileLauncher launcher = newEquip.GetComponentInChildren<MissileLauncher>();
         launcher.RemoveAllMissiles();
         launcher.missilePrefab = b61;
+        launcher.loadOnStart = true;
         launcher.RemoveAllMissiles();
         DontDestroyOnLoad(newEquip);
         DontDestroyOnLoad(b61);
         Transform hp0 = newEquip.transform.GetChild(0);
-        for (int i = 0; i < hp0.childCount; i++)
+        /*for (int i = 0; i < hp0.childCount; i++)
         {
             Transform childtf = hp0.GetChild(i);
             Debug.Log("Destroying child " + childtf.name);
             Destroy(hp0.GetChild(i).gameObject); // why is the nuke like this
-        }
+        }*/
         //MonoHelper.FindAllChildrenRecursively(b61.transform);
         MonoHelper.FindAllChildrenRecursively(newEquip.transform);
         allCustomWeapons.Add("B61x1", new CustomEqInfo(newEquip));
@@ -191,6 +196,8 @@ public class Armory : VTOLMOD
     }
     private IEnumerator LoadAim7(GameObject weaponObject)
     {
+
+        GameObject missileObject = Instantiate(weaponObject);
         GameObject yoinkedEquipper = Instantiate(Resources.Load("hpequips/afighter/af_amraam") as GameObject);
         yoinkedEquipper.SetActive(true);
         HPEquipRadarML yoinkedMore = yoinkedEquipper.GetComponentInChildren<HPEquipRadarML>();
@@ -198,28 +205,22 @@ public class Armory : VTOLMOD
         yoinkedMore.shortName = "AIM-7";
         yoinkedMore.description = "Semi-Active radar long range air to air missile.";
         yoinkedMore.subLabel = "SEMI-RADAR AAM";
-        yoinkedMore.allowedHardpoints = "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,18,20";
+        yoinkedMore.allowedHardpoints = "1,2,3,4,5,6,7,8,9,10";
         GameObject dummyMissile = Instantiate(yoinkedMore.ml.missilePrefab);
-        //Transform particleSystemYoinked = dummyMissile.transform.Find("exhaustTransform").Find("MissileTrail");
-        //particleSystemYoinked.SetParent(weaponObject.transform.Find("exhaustTransform"));
-        //particleSystemYoinked.localPosition = Vector3.zero;
-        weaponObject.GetComponent<AudioSource>().clip = Instantiate(dummyMissile.GetComponent<AudioSource>().clip);
-        /*foreach (Transform children in dummyMissile.transform.Find("exhaustTransform").GetComponentsInChildren<Transform>())
-        {
-            if (children.name != "exhaustTransform" || true)
-                continue;
-            children.SetParent(weaponObject.transform.Find("exhaustTransform"));
-            children.position = Vector3.zero;
-            break;
-        }*/
+
+        AudioSource ab = missileObject.GetComponent<AudioSource>();
+        AudioSource YOINKED = dummyMissile.GetComponent<AudioSource>();
+        ab.clip = Instantiate(YOINKED.clip);
+        ab.outputAudioMixerGroup = YOINKED.outputAudioMixerGroup;
+
         Destroy(dummyMissile);
         yoinkedMore.gameObject.name = "AIM-7";
-        yoinkedMore.ml.missilePrefab = weaponObject;
+        yoinkedMore.ml.missilePrefab = missileObject;
         yoinkedMore.ml.RemoveAllMissiles();
-        DontDestroyOnLoad(weaponObject);
+        DontDestroyOnLoad(missileObject);
         DontDestroyOnLoad(yoinkedMore);
         allCustomWeapons.Add("AIM-7", new CustomEqInfo(yoinkedEquipper));
-        weaponObject.SetActive(false);
+        missileObject.SetActive(false);
         yoinkedEquipper.SetActive(false);
         Debug.Log("Loaded Aim7");
         yield break;
@@ -259,27 +260,3 @@ public class Armory : VTOLMOD
     }
 
 }
-
-[HarmonyPatch(typeof(RadarMissileLauncher), nameof(RadarMissileLauncher.TryFireMissile))]
-class TryFireMissilePatch
-{
-    [HarmonyPostfix]
-    public static void Postfix(bool __result, RadarMissileLauncher __instance)
-    {
-        if (!__result && __instance.lockingRadar == null)
-            Debug.Log("Missile: " + __instance.missilePrefab.name + " failed to fire due to a null locking radar.");
-    }
-}
-
-/*[HarmonyPatch(typeof(Missile), nameof(Missile.Fire))]
-class MachPatch
-{
-    [HarmonyPostfix]
-    public static void Postfix(bool __result, Missile __instance)
-    {
-        if (!__result)
-            return;
-        __instance.rb.AddRelativeForce(10000f * Vector3.forward);
-        Debug.LogWarning("Added Vel!");
-    }
-}*/

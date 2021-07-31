@@ -9,10 +9,12 @@ using System;
 class CustomWeaponHandler : MonoBehaviour
 {
     private WeaponManager wm;
+    private ExternalOptionalHardpoints extHp;
     private static CustomWeaponHandler instance;
     public CustomWeaponHandler()
     {
         wm = base.GetComponent<WeaponManager>();
+        extHp = base.GetComponent<ExternalOptionalHardpoints>();
     }
     private void Awake()
     {
@@ -53,6 +55,8 @@ class CustomWeaponHandler : MonoBehaviour
                 customObject.transform.localPosition = wm.hardpointTransforms[idx].localPosition;
                 if (HPEquipper.armable)
                     HPEquipper.armed = true;
+                if (extHp != null)
+                    extHp.Wm_OnWeaponEquippedHPIdx(idx);
                 Debug.Log("Equipped custom weapon " + hpLoadout[idx] + "!");
                 MonoHelper.FindAllChildrenRecursively(HPEquipper.transform);
             }

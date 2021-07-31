@@ -77,8 +77,7 @@
     <Compile Include="BOOM.cs" />
     <Compile Include="CustomEqInfo.cs" />
     <Compile Include="CustomWeaponHandler.cs" />
-    <Compile Include="DebugPatches.cs" />
-    <Compile Include="EMP.cs" />
+    <Compile Include="MissileDetonatedEvents.cs" />
     <Compile Include="HPEquipSwarmMissileLauncher.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Patches.cs" />

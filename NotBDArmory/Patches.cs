@@ -128,6 +128,12 @@ public static class PatchAttachCustomWeapon
 
 public class MonoHelper : MonoBehaviour
 {
+    private static ExternalOptionalHardpoints extHardpoint;
+    private void Awkae()
+    {
+        if (extHardpoint == null)
+            extHardpoint = VTOLAPI.GetPlayersVehicleGameObject().GetComponent<ExternalOptionalHardpoints>();
+    }
     public void StartConfigRoutine(int hpIdx, string weaponName, LoadoutConfigurator __instance)
     {
         try
@@ -167,11 +173,6 @@ public class MonoHelper : MonoBehaviour
         weaponTf.position = hpTf.TransformPoint(localPos);
         __instance.UpdateNodes();
         Vector3 tgt = new Vector3(0f, 0f, 0.5f);
-        if (VTOLAPI.GetPlayersVehicleEnum() == VTOLVehicles.F45A)
-        {
-            if (hpIdx >= 5 && hpIdx <= 10)
-                GameObject.Find("extPylon" + (hpIdx - 4).ToString())?.SetActive(true); // fucking hacks amirite?
-        }
         while ((localPos - tgt).sqrMagnitude > 0.01f)
         {
             localPos = Vector3.Lerp(localPos, tgt, 5f * Time.deltaTime);
@@ -201,10 +202,13 @@ public class MonoHelper : MonoBehaviour
         LCPTraverse.Field("attachRoutines").SetValue(attachRoutines);
         Debug.Log("Ended attach routine.");
         FindAllChildrenRecursively(instantiated.transform);
+        if (extHardpoint != null)
+            extHardpoint.Wm_OnWeaponEquippedHPIdx(hpIdx);
         yield break;
     }
     public static void FindAllChildrenRecursively(Transform parent)
     {
+        return;
         for (int i = 0; i < parent.childCount; i++)
         {
             Transform child = parent.GetChild(i);
@@ -254,3 +258,38 @@ public static class DontAnimateCustomWeapns
         return !Armory.CheckCustomWeapon(eq.name);
     }
 }
+
+[HarmonyPatch(typeof(Missile), "Awake")]
+public static class Redo_Transform
+{
+    public static void Postfix(Missile __instance)
+    {
+        if (__instance.exhaustTransform == null)
+            return;
+        Traverse missileTraverse = Traverse.Create(__instance);
+        ParticleSystem[] systems = (ParticleSystem[])missileTraverse.Field("ps").GetValue();
+        if (systems != null && systems.Length == 0)
+        {
+            missileTraverse.Field("ps").SetValue(__instance.exhaustTransform.GetComponentsInChildren<ParticleSystem>(true));
+            Debug.Log("Redid ps for missile: " + __instance.name);
+        }
+        return;
+    }
+}
+
+/*[HarmonyPatch(typeof(Bullet), nameof(Bullet.Fire))]
+public static class AddTrailToRailGun
+{
+    public static void Postfix(Bullet __instance, Color color)
+    {
+        if (color.a == 0.2705882 && color.r == 0.2705882 && color.g == 0.2705882 && color.b == 0.2705882) // this is stupid but it is a way to identify if a railgun shot this bullet
+        {
+            TrailRenderer trail = __instance.gameObject.AddComponent<TrailRenderer>();
+            trail.time = .2;
+            trail.material.color = new Color32(0, 255, 255, 1);
+            trail.startWidth = 0.75f;
+            trail.endWidth = 0.75f;
+            trail.enabled = true;
+        }
+    }
+}*/

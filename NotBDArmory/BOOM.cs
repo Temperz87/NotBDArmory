@@ -8,10 +8,8 @@ using UnityEngine;
 class BOOM : MonoBehaviour
 {
     public static BOOM instance { get; private set; }
-    private static List<Coroutine> allCoroutines = new List<Coroutine>();
     private static List<RoutineHandler> allHandlers = new List<RoutineHandler>();
-    private static List<RoutineHandler> quickSavedHandlers = new List<RoutineHandler>();
-    private GameObject routineSlave;
+    private static List<HandlerQSData> quickSavedHandlers = new List<HandlerQSData>();
     private void Awake()
     {
         if (instance == null)
@@ -24,17 +22,10 @@ class BOOM : MonoBehaviour
             Debug.LogWarning("j4ShipPrefab was somehow null?");
             j4ShipPrefab = Resources.Load<GameObject>("units/enemy/mothership");
         }
-        messages = VTOLAPI.GetPlayersVehicleGameObject().GetComponent<VehicleMaster>().hudMessages;
-        allCoroutines = new List<Coroutine>();
         allHandlers = new List<RoutineHandler>();
         QuicksaveManager.instance.OnQuicksave += CreateQuickSavedRoutines;
         QuicksaveManager.instance.OnQuickloadEarly += DestroyRoutines;
         QuicksaveManager.instance.OnQuickloadLate += ResumeRoutines;
-        if (routineSlave == null)
-        {
-            routineSlave = Instantiate(new GameObject());
-            DontDestroyOnLoad(routineSlave);
-        }
         VTOLAPI.MissionReloaded += DestroyRoutines;
     }
     private void Update()
@@ -52,57 +43,88 @@ class BOOM : MonoBehaviour
     }
     public void DoNukeExplode(Vector3 pos)
     {
-        NukeExplodeHandler handler = routineSlave.AddComponent<NukeExplodeHandler>();
+        NukeExplodeHandler handler = Instantiate(new GameObject()).AddComponent<NukeExplodeHandler>();
+        handler.targetPos = pos;
+        allHandlers.Add(handler); 
+        StartCoroutine(handler.ExplodeRoutine());
+    }
+    public void DoEmpExplode(Vector3 pos)
+    {
+        EmpExplodeHandler handler = Instantiate(new GameObject()).AddComponent<EmpExplodeHandler>(); // WHY DO YOU AND ONLY YOU NEED A MISSILE I HATE THAT I MUST DO THIS
         handler.targetPos = pos;
         allHandlers.Add(handler);
-        allCoroutines.Add(StartCoroutine(handler.ExplodeRoutine()));
-    }
-    public void DoEmpExplode(Transform missile)
-    {
-        EmpExplodeHandler handler = routineSlave.AddComponent<EmpExplodeHandler>(); // WHY DO YOU AND ONLY YOU NEED A MISSILE I HATE THAT I MUST DO THIS
-        allHandlers.Add(handler);
-        allCoroutines.Add(StartCoroutine(handler.ExplodeRoutine()));
+        StartCoroutine(handler.ExplodeRoutine());
     }
 
     private void CreateQuickSavedRoutines(ConfigNode _)
     {
-        quickSavedHandlers = new List<RoutineHandler>();
+        quickSavedHandlers = new List<HandlerQSData>();
         foreach (RoutineHandler handler in allHandlers)
-            quickSavedHandlers.Add(handler);
+        {
+            RoutineHandler newHandler = new RoutineHandler(handler);
+            quickSavedHandlers.Add(new HandlerQSData(newHandler));
+        }
     }
     private void DestroyRoutines(ConfigNode _) => DestroyRoutines();
     private void DestroyRoutines()
     {
-        foreach (Coroutine routine in allCoroutines)
-            StopCoroutine(routine);
+        foreach (RoutineHandler routine in allHandlers)
+        {
+            routine.stopCoroutine = true;
+        }
     }
     private void ResumeRoutines(ConfigNode _)
     {
         if (messages == null)
             messages = VTOLAPI.GetPlayersVehicleGameObject().GetComponent<VehicleMaster>().hudMessages;
-        foreach (RoutineHandler handler in allHandlers)
+        foreach (HandlerQSData handlerQSData in quickSavedHandlers)
         {
-            allCoroutines.Add(StartCoroutine(handler.ExplodeRoutine()));
+            RoutineHandler newHandler;
+            if (handlerQSData.isnuke)
+                newHandler = Instantiate(new GameObject()).AddComponent<NukeExplodeHandler>();
+            else
+                newHandler = Instantiate(new GameObject()).AddComponent<EmpExplodeHandler>();
+            newHandler.CopyFields(handlerQSData);
+            StartCoroutine(newHandler.ExplodeRoutine());
+            allHandlers.Add(newHandler);
         }
     }
 
+    private struct HandlerQSData
+    {
+        public HandlerQSData(RoutineHandler toCopy)
+        {
+            this.targetPos = toCopy.targetPos;
+            this.r = toCopy.r;
+            this.criticality = toCopy.criticality;
+            this.isnuke = toCopy.isnuke;
+        }
+        public Vector3 targetPos;
+        public float r;
+        public int criticality; // incase i wanna reuse it
+        public bool isnuke;
+    }
     private class RoutineHandler : MonoBehaviour // OH GOD WHY MUST YOU BE LIKE THIS
     {
         public static int nukeIdx;
         public Vector3 targetPos;
         public float r = 0f;
         public int criticality = 6; // incase i wanna reuse it
+        public bool stopCoroutine = false;
+        public bool isnuke = false;
+        public RoutineHandler() { }
         /*public RoutineHandler(Vector3 targetPos)
         {
             this.targetPos = targetPos;
-        }
+        }*/
         public RoutineHandler(RoutineHandler toCopy)
         {
             this.targetPos = toCopy.targetPos;
             this.r = toCopy.r;
             this.criticality = toCopy.criticality;
-        }*/
-        public void CopyFields(RoutineHandler toCopy)
+            this.isnuke = toCopy.isnuke;
+        }
+        public void CopyFields(HandlerQSData toCopy)
         {
             this.targetPos = toCopy.targetPos;
             this.r = toCopy.r;
@@ -116,7 +138,8 @@ class BOOM : MonoBehaviour
     private class NukeExplodeHandler : RoutineHandler
     {
         //public NukeExplodeHandler(Vector3 targetPos) : base(targetPos) { }
-        //public NukeExplodeHandler(RoutineHandler handler) : base(handler) { }
+        public NukeExplodeHandler() { }
+        public NukeExplodeHandler(RoutineHandler handler) : base(handler) { this.isnuke = true; }
         public override IEnumerator ExplodeRoutine()
         {
             if (base.targetPos == null)
@@ -133,6 +156,8 @@ class BOOM : MonoBehaviour
             explodeSphereTf.position = targetPos;
             Destroy(j4Ship);
             int curr_idx = nukeIdx++;
+            if (BOOM.messages == null)
+                BOOM.messages = VTOLAPI.GetPlayersVehicleGameObject().GetComponent<VehicleMaster>().hudMessages;
             if (BOOM.messages != null)
                 for (; criticality > 0; criticality--)
                 {
@@ -146,6 +171,14 @@ class BOOM : MonoBehaviour
             bool turnedoffmessage = false;
             while (r < 20000f)
             {
+                if (stopCoroutine)
+                {
+                    Destroy(explosionObject);
+                    //explodeSphereTf.gameObject.SetActive(false);
+                    allHandlers.Remove(this);
+                    Destroy(this);
+                    yield break;
+                }
                 float num = r * r;
                 for (int i = 0; i < TargetManager.instance.allActors.Count; i++)
                 {
@@ -177,7 +210,8 @@ class BOOM : MonoBehaviour
     private class EmpExplodeHandler : RoutineHandler
     {
         //public EmpExplodeHandler(Vector3 targetPos) : base(targetPos) { }
-        //public EmpExplodeHandler(RoutineHandler handler) : base(handler) { }
+        public EmpExplodeHandler() { }
+        public EmpExplodeHandler(RoutineHandler handler) : base(handler) { this.isnuke = false; }
         public override IEnumerator ExplodeRoutine()
         {
             if (targetPos == null)
@@ -206,34 +240,46 @@ class BOOM : MonoBehaviour
             explosionObject.SetActive(true);
             explosionObject.transform.parent = null;
             float r = 0f;
-            Debug.Log(targetPos.ToString() + " EMPing...");
             List<Actor> empedActors = new List<Actor>();
             while (r < 20f)
             {
+                if (stopCoroutine)
+                {
+                    Destroy(explosionObject);
+                    //explodeSphereTf.gameObject.SetActive(false);
+                    allHandlers.Remove(this);
+                    Destroy(this);
+                    yield break;
+                }
                 float num = r * r;
                 for (int i = 0; i < TargetManager.instance.allActors.Count; i++) // baha if you're reading this just dm me to take down the mod no need for a cease and desist and/or loiyers
                 {
                     Actor actor = TargetManager.instance.allActors[i];
                     if (actor.alive && (actor.position - explosionObject.transform.position).sqrMagnitude < num && actor.transform != explosionObject.transform && !empedActors.Contains(actor))
                     {
-                        foreach (var component in actor.GetComponentsInChildren<Battery>())
+                        foreach (var battery in actor.GetComponentsInChildren<Battery>())
                         {
-                            component.Drain(component.maxCharge);
-                            component.ToggleConnection();
-                            component.Kill();
+                            battery.Drain(battery.maxCharge);
+                            battery.SetConnection(0);
+                            battery.Kill();
                         }
                         AIPilot pilot = actor.GetComponent<AIPilot>();
                         if (pilot)
                         {
                             pilot.enabled = false;
-                            pilot.autoPilot.enabled = false;
+                            if (pilot.autoPilot)
+                            {
+                                pilot.autoPilot.enabled = false;
+                                foreach (ModuleEngine engine in pilot.autoPilot.engines)
+                                {
+                                    engine.StopImmediate();
+                                    engine.FailEngine();
+                                }
+                            }
                         }
-                        foreach (ModuleEngine engine in actor.GetComponentsInChildren<ModuleEngine>())
-                            engine.FailEngine();
-                        //foreach (var poweredObj in actor.GetComponentsInChildren<>)
+                        Debug.Log("EMP'd actor " + actor.name);
+                        empedActors.Add(actor);
                     }
-                    Debug.Log("EMP'd actor " + actor.name);
-                    empedActors.Add(actor);
                 }
                 explodeSphereTf.localScale = 2f * r * Vector3.one;
                 r += 343f * Time.deltaTime;
