@@ -74,15 +74,19 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BOOM.cs" />
+    <Compile Include="Weapon Scripts\BOOM.cs" />
     <Compile Include="CustomEqInfo.cs" />
     <Compile Include="CustomWeaponHandler.cs" />
-    <Compile Include="MissileDetonatedEvents.cs" />
-    <Compile Include="HPEquipSwarmMissileLauncher.cs" />
+    <Compile Include="Harmony Patches\InternalWeaponBay.cs" />
+    <Compile Include="Harmony Patches\LoadoutConfigurator.cs" />
+    <Compile Include="Harmony Patches\Missile.cs" />
+    <Compile Include="Harmony Patches\PlayerVehicleSetup.cs" />
+    <Compile Include="Weapon Scripts\MissileDetonatedEvents.cs" />
+    <Compile Include="Weapon Scripts\HPEquipSwarmMissileLauncher.cs" />
     <Compile Include="Main.cs" />
-    <Compile Include="Patches.cs" />
+    <Compile Include="MonoHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RailGun.cs" />
+    <Compile Include="Weapon Scripts\RailGun.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

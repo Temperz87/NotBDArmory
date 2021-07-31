@@ -19,7 +19,6 @@ public class Armory : VTOLMOD
     };
     public void BeginEquipCustomWeapons()
     {
-
         CustomWeaponHandler handler = null;
         handler = VTOLAPI.GetPlayersVehicleGameObject().GetComponent<CustomWeaponHandler>();
         if (handler == null)
