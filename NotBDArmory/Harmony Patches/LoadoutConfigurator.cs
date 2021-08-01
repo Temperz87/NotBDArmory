@@ -18,7 +18,7 @@ using UnityEngine.UI;
 public class InjectCustomWeapons
 {
     [HarmonyPostfix]
-    public static void Postfix(LoadoutConfigurator __instance)
+    public static void Postfix(LoadoutConfigurator __instance) 
     {
         Debug.Log("Doing postfix.");
         Traverse traverse = Traverse.Create(__instance);
@@ -35,7 +35,7 @@ public class InjectCustomWeapons
                 Debug.Log("Try add " + name + " to loadout configurator.");
                 CustomEqInfo info = Armory.TryGetWeapon(name);
                 if (!info.CompareTo(VTOLAPI.GetPlayersVehicleEnum()))
-                    return;
+                    continue; // this used to be a return and it grinded my gears trying to find out why nothing worked in the av42c, found out why
                 if (info == null)
                 {
                     Debug.LogError(name + " was not found in all custom weaopns.");
@@ -44,8 +44,8 @@ public class InjectCustomWeapons
                 GameObject customWeapon = info.weaponObject;
                 EqInfo eq = new EqInfo(GameObject.Instantiate(customWeapon), name);
                 if (holocamDummy != null)
-                    eq.eq.transform.position = holocamDummy.transform.position;
-                unlockedWeaponPrefabs.Add(name, eq); // Sadly can't prefix a method so shitty shit 
+                    eq.eq.transform.position = holocamDummy.transform.position; // this doesn't work
+                unlockedWeaponPrefabs.Add(name, eq); 
                 Debug.Log("Added weapon to list " + name);
             }
             catch (KeyNotFoundException)
@@ -63,7 +63,7 @@ public class InjectCustomWeapons
 [HarmonyPatch(typeof(LoadoutConfigurator), "Attach")]
 public static class PatchAttachCustomWeapon
 {
-    public static bool Prefix(string weaponName, int hpIdx, LoadoutConfigurator __instance)
+    public static bool Prefix(string weaponName, int hpIdx, LoadoutConfigurator __instance) // this entire functions existance stems from not being able to patch out get instantiated
     {
         if (helper == null)
         {

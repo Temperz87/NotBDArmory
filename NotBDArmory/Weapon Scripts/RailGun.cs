@@ -14,7 +14,11 @@ class RailGun : MonoBehaviour
     private HPEquipGun equip;
     private WeaponManager wm;
     private bool deployed = false;
-    private string boop;
+    private float intensity = 4f;
+    private MeshRenderer[] emisiveMaterials;
+    private static Color32 emissionColor = new Color32(191, 191, 191, 255);
+    ParticleSystem system;
+    private string boop; //debug gui var
     private void Awake()
     {
         this.equip = gameObject.GetComponent<HPEquipGun>();
@@ -22,6 +26,18 @@ class RailGun : MonoBehaviour
             Debug.LogError("equip is null.");
         equip.OnEquipped += yoinkWM;
         this.animationController = GetComponentInChildren<Animator>();
+        this.emisiveMaterials = GetComponentsInChildren<MeshRenderer>();
+        foreach (MeshRenderer renderer in emisiveMaterials)
+            renderer.material.EnableKeyword("_EMISSION");
+        setRgEmission(Color.black);
+        equip.gun.OnFired += delegate { StartCoroutine(rampUpIntensity()); };
+        system = equip.gun.fireTransforms[0].gameObject.GetComponentInChildren<ParticleSystem>();
+        equip.gun.OnFired += delegate { system.FireBurst(); }; // i did it properly baha :P
+    }
+    private void setRgEmission(Color color)
+    {
+        foreach (MeshRenderer renderer in emisiveMaterials)
+            renderer.material.SetColor("_EmissionColor", color); ;
     }
     private void Update()
     {
@@ -39,6 +55,23 @@ class RailGun : MonoBehaviour
             animationController.SetFloat("direction", -1);
             animationController.SetTrigger("animate!");
         }
+        if (Input.GetKeyDown(KeyCode.M))
+            setRgEmission((Color)(emissionColor) * 4);
+        if (Input.GetKeyDown(KeyCode.N))
+            setRgEmission(new Color(0, 0, 0, 0));
+
+    }
+    private IEnumerator rampUpIntensity() // is this right?
+    {
+        float timeElapsed = 0;
+        while (timeElapsed < 10)
+        {
+            intensity = Mathf.Lerp(0, 4, timeElapsed / 10);
+            timeElapsed += Time.deltaTime;
+            setRgEmission((Color)(emissionColor) * (deployed ? intensity : 0));
+            yield return null;
+        }
+        intensity = 4;
     }
     private void yoinkWM()
     {
@@ -54,7 +87,7 @@ class RailGun : MonoBehaviour
         if (wm.OnWeaponChanged == null)
         {
             Debug.Log("on weapon changed is null, remaking it now.");
-            wm.OnWeaponChanged = new UnityEvent(); 
+            wm.OnWeaponChanged = new UnityEvent();
         }
         equip.triggerOpenBay = false;
     }
@@ -63,11 +96,12 @@ class RailGun : MonoBehaviour
         animationController.SetFloat("direction", deployed ? -1 : 1);
         animationController.SetTrigger("animate!");
         deployed = !deployed;
+        setRgEmission((Color)(emissionColor) * (deployed ? intensity : 0));
     }
     private void OnGUI()
     {
         return;
         GUI.Label(new Rect(36, 36, 1000f, 36), "Deployed: " + deployed.ToString());
-        GUI.Label(new Rect(36, 72, 1000f, 36), (boop != null)? boop : "null");
+        GUI.Label(new Rect(36, 72, 1000f, 36), (boop != null) ? boop : "null");
     }
 }

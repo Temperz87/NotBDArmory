@@ -114,7 +114,7 @@ public class Armory : VTOLMOD
         GameObject rg = Instantiate(weaponObject);
         rg.AddComponent<RailGun>();
         DontDestroyOnLoad(rg);
-        allCustomWeapons.Add("45 Rail Gun", new CustomEqInfo(rg, VTOLVehicles.F45A));
+        allCustomWeapons.Add("45 Rail Gun", new CustomEqInfo(rg, VTOLVehicles.F45A, false));
         rg.SetActive(false);
         GameObject gau22dumby = Instantiate(Resources.Load("hpequips/f45a/f45_gun") as GameObject);
         weaponObject.GetComponentInChildren<AudioSource>().outputAudioMixerGroup = gau22dumby.GetComponentInChildren<Gun>().fireAudioSource.outputAudioMixerGroup;
@@ -218,7 +218,7 @@ public class Armory : VTOLMOD
         yoinkedMore.ml.RemoveAllMissiles();
         DontDestroyOnLoad(missileObject);
         DontDestroyOnLoad(yoinkedMore);
-        allCustomWeapons.Add("AIM-7", new CustomEqInfo(yoinkedEquipper));
+        allCustomWeapons.Add("AIM-7", new CustomEqInfo(yoinkedEquipper, VTOLVehicles.AV42C, true));
         missileObject.SetActive(false);
         yoinkedEquipper.SetActive(false);
         Debug.Log("Loaded Aim7");
