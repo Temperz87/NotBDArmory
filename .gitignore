@@ -363,7 +363,4 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-Builds/info.json
-Builds/customweapon.assets
-Builds/NotBDArmory.dll
-Builds/preview.png
+Builds/
