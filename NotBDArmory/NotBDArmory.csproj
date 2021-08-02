@@ -74,6 +74,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Harmony Patches\WeaponManager.cs" />
     <Compile Include="Weapon Scripts\BOOM.cs" />
     <Compile Include="CustomEqInfo.cs" />
     <Compile Include="CustomWeaponHandler.cs" />
