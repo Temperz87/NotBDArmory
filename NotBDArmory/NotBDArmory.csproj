@@ -82,6 +82,7 @@
     <Compile Include="Harmony Patches\LoadoutConfigurator.cs" />
     <Compile Include="Harmony Patches\Missile.cs" />
     <Compile Include="Harmony Patches\PlayerVehicleSetup.cs" />
+    <Compile Include="Weapon Scripts\HPEquipJetEngine.cs" />
     <Compile Include="Weapon Scripts\MissileDetonatedEvents.cs" />
     <Compile Include="Weapon Scripts\HPEquipSwarmMissileLauncher.cs" />
     <Compile Include="Main.cs" />

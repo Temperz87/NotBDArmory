@@ -22,7 +22,7 @@ public static class Redo_Transform
             return;
         Traverse missileTraverse = Traverse.Create(__instance);
         ParticleSystem[] systems = (ParticleSystem[])missileTraverse.Field("ps").GetValue();
-        if (systems != null && systems.Length == 0)
+        if (__instance.exhaustTransform != null && (systems == null || systems.Length == 0))
         {
             missileTraverse.Field("ps").SetValue(__instance.exhaustTransform.GetComponentsInChildren<ParticleSystem>(true));
             Debug.Log("Redid ps for missile: " + __instance.name);

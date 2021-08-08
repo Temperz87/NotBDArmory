@@ -8,49 +8,78 @@ using UnityEngine.SceneManagement;
 using System.Reflection;
 using Harmony;
 
+/* IDEAS FOR THIS/Brainstorming
+ * Have A master optical targeter for each side (maybe 6?) that can assign missile locks, doable
+ * Current system of each missile unlocks if they've already locked a target another missile has, downsides it's fucking shit and gives me a headahce
+ * steal C's radar code, upsides I DONT GOTTA DO SHIT WOOOOOOOO
+ * use a optical/visual/heat finder to paint targets then tell the missiles to track to them via a super radar or something when fire ml
+ * headtrack paint, upsides pretty pog downsides I HAVE TO TURN MY HEAD AAAAAAAAAAAAA
+ * tgp paint (ew please no)
+ * maddog esque where missiles will fire then seek out the nearest enemy, most anime best option so far most op love it 10/10 but too op imo AND HOW TRACK THIS DOESNT ANSWER THE QUESTION
+ * custom mfd page to select target (please oh god no please fuck fuck no please) 
+ *
+ * idfk man
+*/
 class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress and waas intended as a fun side side project for me, might not be done for a bit
 {
+    public OpticalMissileLauncher oml;
+
     private List<Vector3> lockedPositions;
-    private List<HeatSeeker> allHeatSeekers;
     private List<lockData> missilesLocked;
-    private IRMissileLauncher irml;
-    private Dictionary<HeatSeeker, Traverse> seekerTraverses;
-    private Dictionary<HeatSeeker, Missile> seekerToMissile;
-    private Transform[] reticles;
-    private Traverse irmltraverse;
-    private bool raisehell;
+    private List<Transform> reticles;
+
+    private Traverse rmltraverse;
     private HUDWeaponInfo hudReticle;
     private CollimatedHUDUI hud;
-    private void Awake()
+    private bool fire = false;
+    RadarLockData rdata;
+    private bool raisehell;
+
+    public HPEquipSwarmMissileLauncher()
     {
-        throw new NotImplementedException("Sorry, not done yet.");
-        lockedPositions = new List<Vector3>(); // TODO : Add to the list
-        allHeatSeekers = new List<HeatSeeker>();
-        irml = base.GetComponent<IRMissileLauncher>();
-        seekerTraverses = new Dictionary<HeatSeeker, Traverse>();
-        seekerToMissile = new Dictionary<HeatSeeker, Missile>();
+        this.fullName = "All-Directional-Multi-Missile-Launcher";
+        this.shortName = "ADMM";
+        this.subLabel = "I DONT KNOW WHAT FIRE MOD THIS WILL HAVE SWARM";
+        this.allowedHardpoints = "15";
+        this.description = "A weapon to allow you to become death...";
+        this.armable = true;
+        this.armed = true;
+    }
+
+    protected override void Awake()
+    {
+        base.Awake();
+        lockedPositions = new List<Vector3>();
+        oml = base.GetComponent<OpticalMissileLauncher>();
         missilesLocked = new List<lockData>();
-        foreach (Missile missile in irml.missiles)
-        {
-            allHeatSeekers.Add(missile.heatSeeker);
-            seekerTraverses.Add(missile.heatSeeker, Traverse.Create(missile.heatSeeker)); // I don't know how fast creating traverses are, but this should be fine and faster   
-            seekerToMissile.Add(missile.heatSeeker, missile);
-        }
         HPEquippable.EquipFunction equipFunction = new HPEquippable.EquipFunction();
         equipFunction.optionName = "Cycle Mode";
         equipFunction.optionReturnLabel = raisehell ? "Multi-Lock" : "Single-Lock";
         equipFunction.optionEvent = new EquipFunction.OptionEvent(CycleMode);
-        irmltraverse = Traverse.Create(irml);
-        reticles = new Transform[irml.missileCount];
+        rmltraverse = Traverse.Create(oml);
+        Debug.Log("Awake hell incarnate jesus christ this thing is powerful...");
+    }       
+    private void MakeReticles()
+    {
+        /*if (reticles != null)
+        {
+            Transform[] destroyReticles = reticles.ToArray();
+            for (int i = 0; i < reticles.Count; i++)
+            {
+                Destroy(destroyReticles[i]);
+            }
+        }
+        reticles = new List<Transform>();
         hudReticle = VTOLAPI.GetPlayersVehicleGameObject().GetComponentInChildren<HUDWeaponInfo>();
         hud = VTOLAPI.GetPlayersVehicleGameObject().GetComponentInChildren<CollimatedHUDUI>();
         Transform reticleBase = hudReticle.reticleTransforms[3];
-        for (int i = 0; i < reticles.Length; i++)
+        for (int i = 0; i < irml.missileCount; i++)
         {
             GameObject newReticle = Instantiate(reticleBase.gameObject, reticleBase.parent);
-            reticles[i] = newReticle.transform;
+            reticles.Add(newReticle.transform);
+            newReticle.SetActive(itemActivated);
             newReticle.SetActive(false);
-        }
+        }*/
     }
     private string CycleMode()
     {
@@ -59,12 +88,15 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
     }
     private void Update()
     {
-        if (raisehell)
+        if (raisehell && false)
             Debug.Log("Not implemented :P");
         //AssignUnfiredMissilesToOneLock();
         else
         {
-            for (int i = 0; i < irml.missileCount; i++)
+            if (!fire)
+                return;
+
+            /*for (int i = 0; i < irml.missileCount; i++)
             {
                 Missile missile = irml.missiles[i];
                 HeatSeeker seeker = missile.heatSeeker;
@@ -77,39 +109,49 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
                 Vector3 seekingVector = seeker.targetPosition;
                 if (AlreadyLocked(missile))
                     continue;
-                if (EnsureNotConflictedLock(seekingVector))
+                if (missile.hasTarget && EnsureNotConflictedLock(seekingVector))
                 {
                     lockedPositions.Add(seekingVector);
                     missilesLocked.Add(new lockData(missile, seeker));
                 }
-                else
+                else if (missile.hasTarget)
                 {
                     HeatSeeker.SeekerModes lastMode = seeker.seekerMode;
-                    seeker.SetSeekerMode(HeatSeeker.SeekerModes.Caged);
-                    seeker.SetSeekerMode(lastMode); // this should unlcok it?
+                    seeker.SetSeekerMode(HeatSeeker.SeekerModes.Uncaged);
+                    seeker.SetSeekerMode(lastMode); // this should unlock it?
                 }
             }
+            AssignIcons();*/
         }
-        AssignIcons();
     }
 
 
     private void AssignIcons()
     {
         List<Vector3> aimPoints = new List<Vector3>();
-        foreach (lockData data in missilesLocked)
+        /*foreach (lockData data in missilesLocked)
         {
             Missile missile = data.ms;
             Transform tf = missile.heatSeeker.transform;
             Vector3 aimPoint = tf.position + transform.forward * 4000f;
             aimPoint = (aimPoint - VRHead.position).normalized;
-            aimPoints.Add();
+            Debug.Log("Created aimpoint.");
+            aimPoints.Add(aimPoint);
+        }*/
+        /*foreach (Transform reticle in reticles)
+            reticle.gameObject.SetActive(false);
+        for (int i = 0; i < irml.missileCount; i++)
+        {
+            if (irml.missiles[i].hasTarget)
+                rmltraverse.Field("missileIdx").SetValue(i);
+            aimPoints.Add((irml.GetAimPoint() - VRHead.position).normalized);
         }
         for (int i = 0; i < aimPoints.Count; i++)
         {
-            reticles[i].position = aimPoints[i] + VRHead.position * hud.depth;
+            reticles[i].position = VRHead.position + aimPoints[i] * hud.depth;
             reticles[i].rotation = Quaternion.LookRotation(aimPoints[i], reticles[i].parent.up);
-        }
+            reticles[i].gameObject.SetActive(true);
+        }*/
     }
 
     private bool AlreadyLocked(Missile missile) // this function is ass
@@ -122,6 +164,8 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
 
     private bool EnsureNotConflictedLock(Vector3 checkAgainst)
     {
+        if (checkAgainst == Vector3.zero)
+            return false;
         foreach (Vector3 heatLock in lockedPositions)
         {
             if (heatLock == checkAgainst)
@@ -134,34 +178,61 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
         return true;
     }
 
+    public override int GetCount()
+    {
+        return oml.GetAmmoCount();
+    }
+    public override int GetMaxCount() => 333; // this works???
+
     public override void OnStartFire()
     {
-        for (int i = 0; i < irml.missiles.Length; i++)
+
+        this.fire = true;
+        /*for (int i = 0; i < irml.missiles.Length; i++)
         {
             if (irml.missiles[i].hasTarget)
             {
-                irmltraverse.Field("missileIdx").SetValue(i);
-                irml.TryFireMissile();
+                rmltraverse.Field("missileIdx").SetValue(i);
+                if (irml.TryFireMissile())
+                    foreach (lockData data in missilesLocked)
+                        if (data.ms == irml.missiles[i])
+                        {
+                            missilesLocked.Remove(data);
+                            allHeatSeekers.Remove(data.seeker);
+                            MakeReticles(); // we have lost a missile so we reassign the transforms
+                            break;
+                        }
             }
-        }
+        }*/
+    }
+    public override void OnStopFire()
+    {
+        base.OnStopFire();
+        this.fire = false;
     }
     public override void OnEnableWeapon()
     {
         base.OnEnableWeapon();
-        irml.EnableWeapon(); // this will set 1 seeker to be active, we want all to be active
-        foreach (HeatSeeker seeker in allHeatSeekers)
+        this.enabled = true;
+        //rml.EnableWeapon(); // this will set 1 seeker to be active, we want all to be active
+        /*foreach (HeatSeeker seeker in allHeatSeekers)
         {
             seeker.enabled = true;
             seeker.seekerEnabled = true;
+            seeker.gimbalFOV = 15f; // we shal track em no matter where they are
+            seeker.seekerFOV = 15f;
+            seeker.SetSeekerMode(HeatSeeker.SeekerModes.HeadTrack);
             seeker.EnableAudio();
         }
+        if (reticles == null)
+            MakeReticles();
         foreach (Transform reticle in reticles)
-            reticle.gameObject.SetActive(true);
+            reticle?.gameObject.SetActive(true);*/
     }
     public override void OnDisableWeapon()
     {
         base.OnDisableWeapon();
-        irml.DisableWeapon(); // this will set 1 seeker to be active, we want all to be active
+        /*irml.DisableWeapon(); // this will set 1 seeker to be active, we want all to be active
         foreach (HeatSeeker seeker in allHeatSeekers) // TODO : Add to the list
         {
             seeker.enabled = false;
@@ -169,8 +240,9 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
             seeker.DisableAudio();
         }
         foreach (Transform reticle in reticles)
-            reticle.gameObject.SetActive(false);
+            reticle?.gameObject.SetActive(false);*/
     }
+
     private struct lockData
     {
         public Missile ms;

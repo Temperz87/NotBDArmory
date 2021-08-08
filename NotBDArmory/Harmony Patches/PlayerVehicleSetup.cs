@@ -19,6 +19,7 @@ public class Patch2
     [HarmonyPrefix]
     public static bool Prefix(PlayerVehicle __instance)
     {
+        return true;
         Loadout notStaticLoadout = new Loadout();
         notStaticLoadout.hpLoadout = (string[])VehicleEquipper.loadout.hpLoadout.Clone();
         notStaticLoadout.cmLoadout = (int[])VehicleEquipper.loadout.cmLoadout.Clone();

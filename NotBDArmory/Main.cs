@@ -13,6 +13,7 @@ public class Armory : VTOLMOD
     private static Dictionary<string, CustomEqInfo> allCustomWeapons = null;
     public static string[] customweaponames = {
         "AIM-7",
+        "ADMM",
         "B61x1",
         "AIM-280",
         "45 Rail Gun"
@@ -104,10 +105,25 @@ public class Armory : VTOLMOD
                 case "45 Rail Gun":
                     StartCoroutine(LoadRailGun(weaponObject));
                     break;
+                case "ADMM":
+                    //StartCoroutine(LoadSwarmMissile(weaponObject)); No admm for you >:(
+                    break;
             }
+            weaponObject.SetActive(false);
         }
 
         Debug.Log("Done loading prefabs.");
+    }
+    private IEnumerator LoadSwarmMissile(GameObject weaponObject)
+    {
+        yield break; // no admm for you >:(
+        GameObject launcher = Instantiate(weaponObject);
+        HPEquipSwarmMissileLauncher sml = launcher.AddComponent<HPEquipSwarmMissileLauncher>();
+        sml.oml.loadOnStart = true;
+        allCustomWeapons.Add("ADMM", new CustomEqInfo(launcher, VTOLVehicles.FA26B, false));
+        DontDestroyOnLoad(launcher);
+        launcher.SetActive(false);
+        yield break;
     }
     private IEnumerator LoadRailGun(GameObject weaponObject)
     {
@@ -140,7 +156,7 @@ public class Armory : VTOLMOD
         AudioSource originalSeeker = dummyMissile.transform.Find("SeekerParent").Find("SeekerAudio").GetComponent<AudioSource>();
         copiedSeeker.clip = Instantiate(originalSeeker.clip);
         copiedSeeker.outputAudioMixerGroup = Instantiate(originalSeeker.outputAudioMixerGroup);
-        
+
         AudioSource copiedLock = parent.Find("LockToneAudio").GetComponent<AudioSource>();
         AudioSource originalLock = dummyMissile.transform.Find("SeekerParent").Find("LockToneAudio").GetComponent<AudioSource>();
         copiedLock.clip = Instantiate(originalLock.clip);

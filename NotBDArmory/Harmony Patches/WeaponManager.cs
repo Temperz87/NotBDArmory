@@ -12,15 +12,21 @@ using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-/*[HarmonyPatch(typeof(WeaponManager))] WIP MP Integration
+[HarmonyPatch(typeof(WeaponManager))] //WIP MP Integration
 [HarmonyPatch("EquipWeapons")]
 public class EquipCustomWeapons
 {
-    public static void Postfix(WeaponManager __instance, Loadout loadout)
+    public static void Prefix(Loadout loadout)
+    {
+        customLoadout = new Loadout();
+        customLoadout.hpLoadout = (string[])loadout.hpLoadout.Clone();
+    }
+    public static void Postfix(WeaponManager __instance)
     {
         if (handler == null)
             handler = VRHead.instance.gameObject.AddComponent<CustomWeaponHandler>(); // just a handy place to put it
-        handler.EquipCustomWeapons(loadout, __instance);
+        handler.EquipCustomWeapons(customLoadout, __instance);
     }
     private static CustomWeaponHandler handler;
-}*/
+    private static Loadout customLoadout;
+}

@@ -17,8 +17,9 @@ class RailGun : MonoBehaviour
     private float intensity = 4f;
     private MeshRenderer[] emisiveMaterials;
     private static Color32 emissionColor = new Color32(191, 191, 191, 255);
-    ParticleSystem system;
+    private ParticleSystem system;
     private string boop; //debug gui var
+    private static List<RailGun> allRgs = new List<RailGun>();
     private void Awake()
     {
         this.equip = gameObject.GetComponent<HPEquipGun>();
@@ -33,7 +34,11 @@ class RailGun : MonoBehaviour
         equip.gun.OnFired += delegate { StartCoroutine(rampUpIntensity()); };
         system = equip.gun.fireTransforms[0].gameObject.GetComponentInChildren<ParticleSystem>();
         equip.gun.OnFired += delegate { system.FireBurst(); }; // i did it properly baha :P
+        equip.subLabel = ("RDY");
+        allRgs.Add(this);
     }
+    private void OnDestroy() => allRgs.Remove(this);
+
     private void setRgEmission(Color color)
     {
         foreach (MeshRenderer renderer in emisiveMaterials)
@@ -59,18 +64,21 @@ class RailGun : MonoBehaviour
             setRgEmission((Color)(emissionColor) * 4);
         if (Input.GetKeyDown(KeyCode.N))
             setRgEmission(new Color(0, 0, 0, 0));
-
     }
     private IEnumerator rampUpIntensity() // is this right?
     {
         float timeElapsed = 0;
         while (timeElapsed < 10)
         {
+            foreach (RailGun gun in allRgs)
+                gun.equip.subLabel = ("COOLING: " + Math.Floor(10 - timeElapsed));
             intensity = Mathf.Lerp(0, 4, timeElapsed / 10);
             timeElapsed += Time.deltaTime;
             setRgEmission((Color)(emissionColor) * (deployed ? intensity : 0));
             yield return null;
         }
+        foreach (RailGun gun in allRgs)
+            gun.equip.subLabel = ("RDY");
         intensity = 4;
     }
     private void yoinkWM()

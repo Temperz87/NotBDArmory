@@ -42,7 +42,7 @@ public class InjectCustomWeapons
                     continue;
                 }
                 GameObject customWeapon = info.weaponObject;
-                EqInfo eq = new EqInfo(GameObject.Instantiate(customWeapon), name);
+                   EqInfo eq = new EqInfo(GameObject.Instantiate(customWeapon), name);
                 if (holocamDummy != null)
                     eq.eq.transform.position = holocamDummy.transform.position; // this doesn't work
                 unlockedWeaponPrefabs.Add(name, eq); 
