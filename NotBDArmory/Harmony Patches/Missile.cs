@@ -14,7 +14,7 @@ using UnityEngine.UI;
 
 
 [HarmonyPatch(typeof(Missile), "Awake")]
-public static class Redo_Transform
+public static class Inject_Redo_Transform
 {
     public static void Postfix(Missile __instance)
     {
@@ -29,4 +29,28 @@ public static class Redo_Transform
         }
         return;
     }
+}
+
+[HarmonyPatch(typeof(Missile), "UpdateTargetData")]
+public static class Check_UpdateData
+{
+    public static bool Prefix(Missile __instance)
+    {
+        if (__instance.name.Contains("ADMM"))
+            Patch_LOALToAny.skipNext = true;
+        return true;
+    }
+}
+
+[HarmonyPatch(typeof(Actor), "GetRoleMask")] // this is in missile because only one function calls it, and it's in missile
+public static class Patch_LOALToAny
+{
+    public static bool Prefix(ref int __result)
+    {
+        __result = 286; // i did the | manually :P
+        bool skip = skipNext;
+        skipNext = false;
+        return !skip;
+    }
+    public static bool skipNext = false;
 }

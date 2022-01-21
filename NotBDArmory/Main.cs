@@ -1,41 +1,27 @@
 using Harmony;
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using System.IO;
 using UnityEngine;
-using System;
 
 public class Armory : VTOLMOD
 {
     private static bool patched = false;
     public static Loadout sloadout;
     private static Loadout RestartedLoadout;
-    private static Dictionary<string, CustomEqInfo> allCustomWeapons = null;
+    public static Dictionary<string, CustomEqInfo> allCustomWeapons = null;
     public static string[] customweaponames = {
         "AIM-7",
         "ADMM",
         "B61x1",
         "AIM-280",
-        "45 Rail Gun"
+        "45 Rail Gun",
+        "Howitzer",
+        "TacticalLaserSystem",
+        "AH-94 Flight Assist Solid Rocket Booster",
+        "Mistake Gun"
     };
-    public void BeginEquipCustomWeapons()
-    {
-        CustomWeaponHandler handler = null;
-        handler = VTOLAPI.GetPlayersVehicleGameObject().GetComponent<CustomWeaponHandler>();
-        if (handler == null)
-        {
-            handler = VTOLAPI.GetPlayersVehicleGameObject().AddComponent<CustomWeaponHandler>();
-            if (RestartedLoadout == null)
-            {
-                RestartedLoadout = new Loadout();
-                RestartedLoadout.hpLoadout = (string[])sloadout.hpLoadout.Clone();
-                handler.EquipCustomWeapons(sloadout);
-                sloadout = null;
-            }
-            else
-                handler.EquipCustomWeapons(RestartedLoadout);
-        }
-    }
     private void Start()
     {
         Debug.Log("Start called");
@@ -47,16 +33,15 @@ public class Armory : VTOLMOD
             Debug.Log("Firstime start called.");
             HarmonyInstance.Create("Tempy.notbdarmory").PatchAll();
             Debug.Log("Try loading prefabs...");
-            AssetBundle assBundel = AssetBundle.LoadFromFile(ModFolder + "/customweapon.assets");
+            AssetBundle assBundel = AssetBundle.LoadFromFile(ModFolder + "/armory.assets");
 
             allCustomWeapons = new Dictionary<string, CustomEqInfo>();
 
             if (assBundel == null)
-                throw new NullReferenceException("Could not find/load customweapon.assets, path should be " + ModFolder + "/customweapon.assets.");
+                throw new FileNotFoundException("Could not find/load armory.assets, path should be " + ModFolder + "/armory.assets.");
             StartCoroutine(LoadWeaponsAsync(assBundel));
             patched = true;
             VTOLAPI.SceneLoaded += SceneChanged; // So when the scene is changed SceneChanged is called
-            VTOLAPI.MissionReloaded += BeginEquipCustomWeapons;
             if (BOOM.instance == null)
             {
                 GameObject BOOMObject = Instantiate(new GameObject()); // stupid solution time
@@ -108,11 +93,61 @@ public class Armory : VTOLMOD
                 case "ADMM":
                     //StartCoroutine(LoadSwarmMissile(weaponObject)); No admm for you >:(
                     break;
+                case "Howitzer":
+                    StartCoroutine(LoadGeneric(weaponObject, weaponName, VTOLVehicles.AH94, false));
+                    break;
+                case "TacticalLaserSystem":
+                    StartCoroutine(LoadLaser(weaponObject));
+                    break;
+                case "AH-94 Flight Assist Solid Rocket Booster":
+                    StartCoroutine(LoadSRB(weaponObject));
+                    break;
+                case "Mistake Gun":
+                    StartCoroutine(LoadGeneric(weaponObject, "Mistake Gun", VTOLVehicles.AH94, false));
+                    break;
+                default:
+                    Debug.LogError(name + " has not been implemented yet but is inside of an asset bundle."); // this should never occur
+                    break;
             }
             weaponObject.SetActive(false);
         }
-
         Debug.Log("Done loading prefabs.");
+    }
+
+    private IEnumerator LoadSRB(GameObject weaponObject)
+    {
+        GameObject SRB = Instantiate(weaponObject);
+        SRB.AddComponent<HPEquipJetEngine>();
+        DontDestroyOnLoad(SRB);
+        allCustomWeapons.Add("AH-94 Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB, VTOLVehicles.AH94, false, "1,2,3,4"));
+        allCustomWeapons.Add("FA-26B Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB, VTOLVehicles.FA26B, false, "11,12,13"));
+        allCustomWeapons.Add("F-45A Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB, VTOLVehicles.F45A, false, "5,6,9,10"));
+        allCustomWeapons.Add("AV-42C Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB, VTOLVehicles.AV42C, false, "1,2,3,4"));
+        //allCustomWeapons.Add("AH-94 Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB, VTOLVehicles.None, false, null));
+        SRB.SetActive(false);
+        Debug.Log("Loaded Flight Assist Solid Rocket Booster");
+        yield break;
+    }
+
+    private IEnumerator LoadLaser(GameObject weaponObject)
+    {
+        GameObject TLS = Instantiate(weaponObject);
+        TLS.AddComponent<HPEquipLaser>();
+        DontDestroyOnLoad(TLS);
+        allCustomWeapons.Add("TacticalLaserSystem", new CustomEqInfo(TLS, VTOLVehicles.FA26B, false));
+        TLS.SetActive(false);
+        Debug.Log("Loaded Tactical Laser System");
+        yield break;
+    }
+
+    private IEnumerator LoadGeneric(GameObject weaponObject, string name, VTOLVehicles vehicle, bool isExclude, string equipPoints = null)
+    {
+        GameObject weaponToInject = Instantiate(weaponObject);
+        DontDestroyOnLoad(weaponToInject);
+        allCustomWeapons.Add(name, new CustomEqInfo(weaponToInject, vehicle, isExclude, null));
+        weaponToInject.SetActive(false);
+        Debug.Log("Loaded " + name);
+        yield break;
     }
     private IEnumerator LoadSwarmMissile(GameObject weaponObject)
     {
@@ -169,13 +204,19 @@ public class Armory : VTOLMOD
         irml.shortName = "AIM-280";
         irml.description = "An IR guided Air to Air missile that fries any electronics in its blast radius.";
         irml.ml.missilePrefab = missileObject;
-        irml.allowedHardpoints = "1,2,3,4,5,6,7,8,9,10"; ;
+        irml.allowedHardpoints = "1,2,3,4,5,6,7,8,9,10"; 
         irml.ml.loadOnStart = true;
         DontDestroyOnLoad(missileObject);
         DontDestroyOnLoad(dummyEquipper);
         irml.ml.RemoveAllMissiles();
-        allCustomWeapons.Add("AIM-280", new CustomEqInfo(dummyEquipper));
+        //GameObject AH94Equipper = Instantiate(dummyEquipper);
+        //DontDestroyOnLoad(AH94Equipper);
+        //AH94Equipper.GetComponent<HPEquippable>().allowedHardpoints = "5,6";
+        allCustomWeapons.Add("AIM-280", new CustomEqInfo(dummyEquipper, VTOLVehicles.AH94, true));
+        allCustomWeapons.Add("AIM-280 Helicopter Variant", new CustomEqInfo(dummyEquipper, VTOLVehicles.AH94, false, "5,6"));
+        //allCustomWeapons.Add("AIM-280", new CustomEqInfo(AH94Equipper, VTOLVehicles.AH94, false));
         dummyEquipper.SetActive(false);
+        //AH94Equipper.SetActive(false);
         missileObject.SetActive(false);
         Debug.Log("Loaded AIM-280");
 
@@ -202,7 +243,7 @@ public class Armory : VTOLMOD
         }*/
         //MonoHelper.FindAllChildrenRecursively(b61.transform);
         MonoHelper.FindAllChildrenRecursively(newEquip.transform);
-        allCustomWeapons.Add("B61x1", new CustomEqInfo(newEquip));
+        allCustomWeapons.Add("B61x1", new CustomEqInfo(newEquip, VTOLVehicles.AH94, true));
         b61.SetActive(false);
         //nukeObject.SetActive(false);
         newEquip.SetActive(false);
@@ -211,44 +252,62 @@ public class Armory : VTOLMOD
     }
     private IEnumerator LoadAim7(GameObject weaponObject)
     {
-
         GameObject missileObject = Instantiate(weaponObject);
+        Debug.Log("A1");
         GameObject yoinkedEquipper = Instantiate(Resources.Load("hpequips/afighter/af_amraam") as GameObject);
+        Debug.Log("A12");
         yoinkedEquipper.SetActive(true);
+        Debug.Log("A13");
         HPEquipRadarML yoinkedMore = yoinkedEquipper.GetComponentInChildren<HPEquipRadarML>();
+        Debug.Log("A14");
         yoinkedMore.fullName = "AIM-7 Sparrow";
+        Debug.Log("A51");
         yoinkedMore.shortName = "AIM-7";
+        Debug.Log("A16");
         yoinkedMore.description = "Semi-Active radar long range air to air missile.";
+        Debug.Log("A17");
         yoinkedMore.subLabel = "SEMI-RADAR AAM";
+        Debug.Log("A1w");
         yoinkedMore.allowedHardpoints = "1,2,3,4,5,6,7,8,9,10";
+        Debug.Log("ewaA1");
         GameObject dummyMissile = Instantiate(yoinkedMore.ml.missilePrefab);
+        Debug.Log("Aewae1");
 
         AudioSource ab = missileObject.GetComponent<AudioSource>();
+        Debug.Log("Aeryae1");
         AudioSource YOINKED = dummyMissile.GetComponent<AudioSource>();
-        ab.clip = Instantiate(YOINKED.clip);
-        ab.outputAudioMixerGroup = YOINKED.outputAudioMixerGroup;
-
+        Debug.Log("Awaerwa1");
+        if (YOINKED != null && YOINKED.clip != null)
+        {
+            ab.clip = Instantiate(YOINKED.clip);
+            Debug.Log("A1wfawe");
+            ab.outputAudioMixerGroup = YOINKED.outputAudioMixerGroup;
+            Debug.Log("Awerawerw1");
+        }
         Destroy(dummyMissile);
+        Debug.Log("warweA1");
         yoinkedMore.gameObject.name = "AIM-7";
+        Debug.Log("A1rawreawe");
         yoinkedMore.ml.missilePrefab = missileObject;
+        Debug.Log("Aawerawe1");
         yoinkedMore.ml.RemoveAllMissiles();
+        Debug.Log("Arawer1");
         DontDestroyOnLoad(missileObject);
+        Debug.Log("Aaweraw1");
         DontDestroyOnLoad(yoinkedMore);
+        Debug.Log("Aawerawrew1");
         allCustomWeapons.Add("AIM-7", new CustomEqInfo(yoinkedEquipper, VTOLVehicles.AV42C, true));
+        Debug.Log("Awrwaerw");
         missileObject.SetActive(false);
+        Debug.Log("Awaeraw1");
         yoinkedEquipper.SetActive(false);
+        Debug.Log("Awaerawe1");
         Debug.Log("Loaded Aim7");
         yield break;
     }
 
     private void SceneChanged(VTOLScenes scenes)
     {
-        if (scenes == VTOLScenes.Akutan || scenes == VTOLScenes.CustomMapBase) // If inside of a scene that you can fly in
-        {
-            BeginEquipCustomWeapons();
-        }
-        else
-            RestartedLoadout = null;
     }
 
     public static bool CheckCustomWeapon(string name)

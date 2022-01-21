@@ -28,7 +28,7 @@ public class InjectCustomWeapons
         GameObject holocamDummy = Resources.FindObjectsOfTypeAll<HPEquippable>().FirstOrDefault().gameObject;
         if (holocamDummy == null)
             Debug.LogError("Dumb");
-        foreach (string name in Armory.customweaponames)
+        foreach (string name in Armory.allCustomWeapons.Keys)
         {
             try
             {

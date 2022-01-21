@@ -34,8 +34,9 @@
     <Reference Include="0Harmony">
       <HintPath>C:\Users\tempe\Documents\GitHub\A10-Mod\refs\0Harmony.dll</HintPath>
     </Reference>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>..\Dependencies\Assembly-CSharp.dll</HintPath>
+    <Reference Include="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\VTOLVR_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="ModLoader">
       <HintPath>..\Dependencies\ModLoader.dll</HintPath>
@@ -48,11 +49,8 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
-    <Reference Include="UnityEngine">
-      <HintPath>..\Dependencies\UnityEngine.dll</HintPath>
-    </Reference>
     <Reference Include="UnityEngine.AnimationModule">
-      <HintPath>..\..\..\..\..\VTOLVR_Data\Managed\UnityEngine.AnimationModule.dll</HintPath>
+      <HintPath>..\Dependencies\UnityEngine.AnimationModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.AssetBundleModule">
       <HintPath>C:\Users\tempe\Documents\GitHub\A10-Mod\refs\UnityEngine.AssetBundleModule.dll</HintPath>
@@ -64,16 +62,17 @@
       <HintPath>..\Dependencies\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.IMGUIModule">
-      <HintPath>..\..\..\..\..\VTOLVR_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+      <HintPath>..\Dependencies\UnityEngine.IMGUIModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.ParticleSystemModule">
-      <HintPath>..\..\..\..\..\VTOLVR_Data\Managed\UnityEngine.ParticleSystemModule.dll</HintPath>
+      <HintPath>..\Dependencies\UnityEngine.ParticleSystemModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.PhysicsModule">
       <HintPath>C:\Users\tempe\Documents\GitHub\A10-Mod\refs\UnityEngine.PhysicsModule.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Weapon Scripts\HPEquipLaser.cs" />
     <Compile Include="Harmony Patches\WeaponManager.cs" />
     <Compile Include="Weapon Scripts\BOOM.cs" />
     <Compile Include="CustomEqInfo.cs" />
@@ -93,7 +92,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>IF EXIST "D:\Vidjagames\Steam\steamapps\common\VTOL VR\VTOLVR_ModLoader\VTOLVR-ModLoader.exe" (
-copy "$(TargetPath)" "D:\Vidjagames\Steam\steamapps\common\VTOL VR\VTOLVR_ModLoader\yurt\My Mods\Not BD Armory\Builds\NotBDArmory.dll"
+copy "$(TargetPath)" "D:\Vidjagames\Steam\steamapps\common\VTOL VR\MyStuff\My Mods\Not BD Armory\Builds\NotBDArmory.dll"
 )</PostBuildEvent>
   </PropertyGroup>
 </Project>

@@ -16,17 +16,13 @@ using UnityEngine.UI;
 [HarmonyPatch("EquipWeapons")]
 public class EquipCustomWeapons
 {
-    public static void Prefix(Loadout loadout)
+    [HarmonyPatch(typeof(WeaponManager))]
+    [HarmonyPatch(nameof(WeaponManager.EquipWeapons))]
+    public class EquipCustomWeaponsPatch
     {
-        customLoadout = new Loadout();
-        customLoadout.hpLoadout = (string[])loadout.hpLoadout.Clone();
+        public static void Postfix(WeaponManager __instance, Loadout loadout)
+        {
+            CustomWeaponHelper.EquipCustomWeapons(__instance, loadout);
+        }
     }
-    public static void Postfix(WeaponManager __instance)
-    {
-        if (handler == null)
-            handler = VRHead.instance.gameObject.AddComponent<CustomWeaponHandler>(); // just a handy place to put it
-        handler.EquipCustomWeapons(customLoadout, __instance);
-    }
-    private static CustomWeaponHandler handler;
-    private static Loadout customLoadout;
 }

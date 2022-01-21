@@ -6,11 +6,15 @@ using System.Threading.Tasks;
 using UnityEngine;
 public class CustomEqInfo
 {
-    public CustomEqInfo(GameObject weaponObject, VTOLVehicles compatability, bool exclude)
+    public CustomEqInfo(GameObject weaponObject, VTOLVehicles compatability, bool exclude, string equips = null)
     {
         this.weaponObject = weaponObject;
         this.compatability = compatability;
         this.isExclude = exclude;
+        if (equips != null)
+        {
+            weaponObject.GetComponent<HPEquippable>().allowedHardpoints = equips;
+        }
     }
     public CustomEqInfo(GameObject weaponObject) : this(weaponObject, VTOLVehicles.None, false) { } // thir arg here doesn't matter
     public bool CompareTo(VTOLVehicles vehicle)

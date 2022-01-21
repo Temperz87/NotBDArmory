@@ -10,7 +10,8 @@ using Harmony;
 
 class RailGun : MonoBehaviour
 {
-    private Animator animationController;
+    private AnimationToggle toggle;
+    private Traverse toggleTraverse;
     private HPEquipGun equip;
     private WeaponManager wm;
     private bool deployed = false;
@@ -26,7 +27,8 @@ class RailGun : MonoBehaviour
         if (equip == null)
             Debug.LogError("equip is null.");
         equip.OnEquipped += yoinkWM;
-        this.animationController = GetComponentInChildren<Animator>();
+        this.toggle = GetComponentInChildren<AnimationToggle>();
+        this.toggleTraverse = Traverse.Create(toggle);
         this.emisiveMaterials = GetComponentsInChildren<MeshRenderer>();
         foreach (MeshRenderer renderer in emisiveMaterials)
             renderer.material.EnableKeyword("_EMISSION");
@@ -52,13 +54,7 @@ class RailGun : MonoBehaviour
             toggleAnimation();
         if (Input.GetKeyDown(KeyCode.G))
         {
-            animationController.SetFloat("direction", 1);
-            animationController.SetTrigger("animate!");
-        }
-        if (Input.GetKeyDown(KeyCode.H))
-        {
-            animationController.SetFloat("direction", -1);
-            animationController.SetTrigger("animate!");
+            toggle.Toggle();
         }
         if (Input.GetKeyDown(KeyCode.M))
             setRgEmission((Color)(emissionColor) * 4);
@@ -101,10 +97,9 @@ class RailGun : MonoBehaviour
     }
     private void toggleAnimation()
     {
-        animationController.SetFloat("direction", deployed ? -1 : 1);
-        animationController.SetTrigger("animate!");
-        deployed = !deployed;
-        setRgEmission((Color)(emissionColor) * (deployed ? intensity : 0));
+        bool deployed = (bool)toggleTraverse.Field("deployed").GetValue();
+        if (equip.itemActivated != deployed)
+            toggle.Toggle();
     }
     private void OnGUI()
     {
