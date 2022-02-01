@@ -15,25 +15,27 @@ using UnityEngine.UI;
 
 
 [HarmonyPatch(typeof(LoadoutConfigurator), nameof(LoadoutConfigurator.Initialize))]
-public class InjectCustomWeapons
+public class Inject_CustomWeapons
 {
     [HarmonyPostfix]
-    public static void Postfix(LoadoutConfigurator __instance) 
+    public static void Postfix(LoadoutConfigurator __instance)
     {
         Debug.Log("Doing postfix.");
         Traverse traverse = Traverse.Create(__instance);
         Debug.Log("Start eq info");
         Dictionary<string, EqInfo> unlockedWeaponPrefabs = (Dictionary<string, EqInfo>)traverse.Field("unlockedWeaponPrefabs").GetValue();
         //Debug.Log("Got eq info.");
-        GameObject holocamDummy = Resources.FindObjectsOfTypeAll<HPEquippable>().FirstOrDefault().gameObject;
-        if (holocamDummy == null)
-            Debug.LogError("Dumb");
+        //GameObject holocamDummy = Resources.FindObjectsOfTypeAll<HPEquippable>().FirstOrDefault().gameObject;
+        //if (holocamDummy == null)
+        //Debug.LogError("Dumb");
         foreach (string name in Armory.allCustomWeapons.Keys)
         {
+            if (name == null || Armory.allCustomWeapons[name] == null)
+                continue;
             try
             {
                 Debug.Log("Try add " + name + " to loadout configurator.");
-                CustomEqInfo info = Armory.TryGetWeapon(name);
+                CustomEqInfo info = Armory.allCustomWeapons[name];
                 if (!info.CompareTo(VTOLAPI.GetPlayersVehicleEnum()))
                     continue; // this used to be a return and it grinded my gears trying to find out why nothing worked in the av42c, found out why
                 if (info == null)
@@ -42,10 +44,12 @@ public class InjectCustomWeapons
                     continue;
                 }
                 GameObject customWeapon = info.weaponObject;
-                   EqInfo eq = new EqInfo(GameObject.Instantiate(customWeapon), name);
-                if (holocamDummy != null)
-                    eq.eq.transform.position = holocamDummy.transform.position; // this doesn't work
-                unlockedWeaponPrefabs.Add(name, eq); 
+                EqInfo eq = new EqInfo(GameObject.Instantiate(customWeapon), name);
+                //if (holocamDummy != null)
+                //eq.eq.transform.position = holocamDummy.transform.position; // this doesn't work
+                unlockedWeaponPrefabs.Add(name, eq);
+                __instance.availableEquipStrings.Add(name);
+
                 Debug.Log("Added weapon to list " + name);
             }
             catch (KeyNotFoundException)
@@ -61,7 +65,7 @@ public class InjectCustomWeapons
 }
 
 [HarmonyPatch(typeof(LoadoutConfigurator), "Attach")]
-public static class PatchAttachCustomWeapon
+public static class Patch_AttachCustomWeapon
 {
     public static bool Prefix(string weaponName, int hpIdx, LoadoutConfigurator __instance) // this entire functions existance stems from not being able to patch out get instantiated
     {
@@ -73,14 +77,36 @@ public static class PatchAttachCustomWeapon
         {
             __instance.Detach(hpIdx);
             Debug.Log("attaching custom weapon " + weaponName);
-            helper.StartConfigRoutine(hpIdx, weaponName, __instance);
+            if (!__instance.uiOnly)
+                helper.StartConfigRoutine(hpIdx, weaponName, __instance);
+            else
+                helper.AttachImmediate(hpIdx, weaponName, __instance);
             return false;
         }
         else
             Debug.Log(weaponName + " is not a custom weapon.");
         return true;
     }
-    private static MonoHelper helper = null;
+    public static MonoHelper helper = null;
+}
+[HarmonyPatch(typeof(LoadoutConfigurator), "AttachImmediate")]
+public static class Patch_AttachCustomWeaponImmediate
+{
+    public static bool Prefix(string weaponName, int hpIdx, LoadoutConfigurator __instance) // this entire functions existance stems from not being able to patch out get instantiated
+    {
+        if (Patch_AttachCustomWeapon.helper == null)
+            Patch_AttachCustomWeapon.helper = __instance.gameObject.AddComponent<MonoHelper>();
+        if (Armory.CheckCustomWeapon(weaponName))
+        {
+            __instance.Detach(hpIdx);
+            Debug.Log("attaching immediate custom weapon " + weaponName);
+            Patch_AttachCustomWeapon.helper.AttachImmediate(hpIdx, weaponName, __instance);
+            return false;
+        }
+        else
+            Debug.Log(weaponName + " is not a custom weapon.");
+        return true;
+    }
 }
 
 [HarmonyPatch(typeof(HPConfiguratorFullInfo), nameof(HPConfiguratorFullInfo.AttachSymmetry))]
@@ -112,3 +138,23 @@ public static class Ensure_Symmetry
         return false;
     }
 }
+
+/*[HarmonyPatch(typeof(LoadoutConfigurator), "CalculateTotalThrust")]
+public static class Patch_IncludeSRBInTWR
+{
+    public static void Postfix(LoadoutConfigurator __instance)
+    {
+        Traverse lcTraverse = Traverse.Create(__instance);
+        float totalThrust = (float)lcTraverse.Field("totalThrust").GetValue();
+        foreach (HPEquipSRB srb in __instance.wm.GetComponentsInChildren<HPEquipSRB>(true))
+        {
+            if (srb.srb == null)
+            {
+                Debug.LogError("Srb.srb is null.");
+                continue;
+            }
+            totalThrust += srb.srb.thrust;
+        }
+        lcTraverse.Field("totalThrust").SetValue(totalThrust);
+    }
+}*/

@@ -241,11 +241,11 @@ class BOOM : MonoBehaviour
             explosionObject.transform.parent = null;
             float r = 0f;
             List<Actor> empedActors = new List<Actor>();
-            while (r < 20f)
+            while (r < 100f)
             {
                 if (stopCoroutine)
                 {
-                    Destroy(explosionObject);
+                    Destroy(explosionObject);   
                     //explodeSphereTf.gameObject.SetActive(false);
                     allHandlers.Remove(this);
                     Destroy(this);
@@ -257,6 +257,7 @@ class BOOM : MonoBehaviour
                     Actor actor = TargetManager.instance.allActors[i];
                     if (actor.alive && (actor.position - explosionObject.transform.position).sqrMagnitude < num && actor.transform != explosionObject.transform && !empedActors.Contains(actor))
                     {
+                        Debug.Log("Found actor to emp " + actor.actorName);
                         foreach (var battery in actor.GetComponentsInChildren<Battery>())
                         {
                             battery.Drain(battery.maxCharge);
@@ -279,6 +280,11 @@ class BOOM : MonoBehaviour
                         }
                         Debug.Log("EMP'd actor " + actor.name);
                         empedActors.Add(actor);
+                    }
+                    else
+                    {
+                        //Debug.Log("Not emping actor " + actor.actorName);
+                        //Debug.Log($"{actor.alive} {(actor.position - explosionObject.transform.position).sqrMagnitude < num} {actor.transform != explosionObject.transform} {!empedActors.Contains(actor)}");
                     }
                 }
                 explodeSphereTf.localScale = 2f * r * Vector3.one;

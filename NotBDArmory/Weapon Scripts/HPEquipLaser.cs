@@ -8,8 +8,13 @@ using UnityEngine.SceneManagement;
 using System.Reflection;
 using Harmony;
 
-class HPEquipLaser : HPEquippable, IGDSCompatible // This is a work in progress and waas intended as a fun side side project for me, might not be done for a bit
+class HPEquipLaser : HPEquippable, IGDSCompatible, IMassObject
 {
+    private bool fire;
+    private LineRenderer laserRenderer;
+    private Transform fireTf;
+    private AudioSource source;
+
     public HPEquipLaser()
     {
         name = "TacticalLaserSystem";
@@ -30,40 +35,44 @@ class HPEquipLaser : HPEquippable, IGDSCompatible // This is a work in progress 
             fireTf = transform.Find("TacticalLaserSystem").Find("Glass");
             laserRenderer = transform.Find("Laser").GetComponent<LineRenderer>();
             laserRenderer.gameObject.SetActive(false);
+            source = fireTf.GetComponent<AudioSource>();
         }
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
         if (!fire)
             return;
-        Debug.Log("Laser updated.");
-        Ray toCast = new Ray();
-        toCast.origin = fireTf.position;
-        toCast.direction = fireTf.forward;
-        
-        Physics.Raycast(toCast, out RaycastHit info, 100, 10);
         laserRenderer.SetPosition(0, fireTf.position);
-        laserRenderer.SetPosition(1, info.point);
-        if (info.collider != null)
+        if (Physics.Linecast(fireTf.position, GetAimPoint(), out RaycastHit info, 8))
         {
+            laserRenderer.SetPosition(1, info.point);
             Hitbox box = info.collider.GetComponent<Hitbox>();
             if (box != null)
-                box.Damage(100, info.point, Health.DamageTypes.Impact, null, "Laser");
+                box.Damage(140f, info.point, Health.DamageTypes.Impact, null, "Laser");
         }
+        else
+            laserRenderer.SetPosition(1, GetAimPoint());
     }
 
-    public override void OnStartFire()
+    public override void OnStartFire()      
     {
         base.OnStartFire();
         fire = true;
         laserRenderer.gameObject.SetActive(true);
+        source.Play();
     }
     public override void OnStopFire()
     {
         base.OnStopFire();
         fire = false;
         laserRenderer.gameObject.SetActive(false);
+        source.Stop();
+    }
+
+    public override int GetCount()
+    {
+        return 1;
     }
 
     public Transform GetFireTransform()
@@ -73,7 +82,7 @@ class HPEquipLaser : HPEquippable, IGDSCompatible // This is a work in progress 
 
     public float GetMuzzleVelocity()
     {
-        return 999999;
+        return Mathf.Infinity;
     }
 
     public override Vector3 GetAimPoint()
@@ -81,7 +90,8 @@ class HPEquipLaser : HPEquippable, IGDSCompatible // This is a work in progress 
         return fireTf.position + 100f * fireTf.forward;
     }
 
-    private bool fire;
-    private LineRenderer laserRenderer;
-    private Transform fireTf;
+    public float GetMass()
+    {
+        return 0.025f;
+    }
 }

@@ -22,7 +22,7 @@ using Harmony;
 */
 class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress and waas intended as a fun side side project for me, might not be done for a bit
 {
-    public OpticalMissileLauncher oml;
+    public IRMissileLauncher irml;
 
     private List<Vector3> lockedPositions;
     private List<lockData> missilesLocked;
@@ -50,18 +50,18 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
     {
         base.Awake();
         lockedPositions = new List<Vector3>();
-        oml = base.GetComponent<OpticalMissileLauncher>();
+        irml = base.GetComponent<IRMissileLauncher>();
         missilesLocked = new List<lockData>();
         HPEquippable.EquipFunction equipFunction = new HPEquippable.EquipFunction();
         equipFunction.optionName = "Cycle Mode";
         equipFunction.optionReturnLabel = raisehell ? "Multi-Lock" : "Single-Lock";
         equipFunction.optionEvent = new EquipFunction.OptionEvent(CycleMode);
-        rmltraverse = Traverse.Create(oml);
+        rmltraverse = Traverse.Create(irml);
         Debug.Log("Awake hell incarnate jesus christ this thing is powerful...");
     }       
     private void MakeReticles()
     {
-        /*if (reticles != null)
+        if (reticles != null)
         {
             Transform[] destroyReticles = reticles.ToArray();
             for (int i = 0; i < reticles.Count; i++)
@@ -79,7 +79,7 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
             reticles.Add(newReticle.transform);
             newReticle.SetActive(itemActivated);
             newReticle.SetActive(false);
-        }*/
+        }
     }
     private string CycleMode()
     {
@@ -88,7 +88,7 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
     }
     private void Update()
     {
-        if (raisehell && false)
+        if (raisehell)
             Debug.Log("Not implemented :P");
         //AssignUnfiredMissilesToOneLock();
         else
@@ -96,16 +96,10 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
             if (!fire)
                 return;
 
-            /*for (int i = 0; i < irml.missileCount; i++)
+            for (int i = 0; i < irml.missileCount; i++)
             {
                 Missile missile = irml.missiles[i];
                 HeatSeeker seeker = missile.heatSeeker;
-                Traverse thisTraverse;
-                if (!seekerTraverses.TryGetValue(seeker, out thisTraverse))
-                {
-                    Debug.LogError("Couldn't get a seeker traverse.");
-                    continue;
-                }
                 Vector3 seekingVector = seeker.targetPosition;
                 if (AlreadyLocked(missile))
                     continue;
@@ -121,7 +115,7 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
                     seeker.SetSeekerMode(lastMode); // this should unlock it?
                 }
             }
-            AssignIcons();*/
+            AssignIcons();
         }
     }
 
@@ -129,7 +123,7 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
     private void AssignIcons()
     {
         List<Vector3> aimPoints = new List<Vector3>();
-        /*foreach (lockData data in missilesLocked)
+        foreach (lockData data in missilesLocked)
         {
             Missile missile = data.ms;
             Transform tf = missile.heatSeeker.transform;
@@ -137,8 +131,8 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
             aimPoint = (aimPoint - VRHead.position).normalized;
             Debug.Log("Created aimpoint.");
             aimPoints.Add(aimPoint);
-        }*/
-        /*foreach (Transform reticle in reticles)
+        }
+        foreach (Transform reticle in reticles)
             reticle.gameObject.SetActive(false);
         for (int i = 0; i < irml.missileCount; i++)
         {
@@ -151,7 +145,7 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
             reticles[i].position = VRHead.position + aimPoints[i] * hud.depth;
             reticles[i].rotation = Quaternion.LookRotation(aimPoints[i], reticles[i].parent.up);
             reticles[i].gameObject.SetActive(true);
-        }*/
+        }
     }
 
     private bool AlreadyLocked(Missile missile) // this function is ass
@@ -180,7 +174,7 @@ class HPEquipSwarmMissileLauncher : HPEquippable // This is a work in progress a
 
     public override int GetCount()
     {
-        return oml.GetAmmoCount();
+        return irml.GetAmmoCount();
     }
     public override int GetMaxCount() => 333; // this works???
 

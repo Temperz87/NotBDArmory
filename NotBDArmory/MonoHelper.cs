@@ -12,13 +12,17 @@ using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public class MonoHelper : MonoBehaviour 
+public class MonoHelper : MonoBehaviour
 {
     private static ExternalOptionalHardpoints extHardpoint;
-    private void Awake() 
+    private void Awake()
     {
         if (extHardpoint == null)
-            extHardpoint = VTOLAPI.GetPlayersVehicleGameObject().GetComponent<ExternalOptionalHardpoints>();
+        {
+            GameObject playerObject = VTOLAPI.GetPlayersVehicleGameObject();
+            if (playerObject)
+                extHardpoint = playerObject.GetComponent<ExternalOptionalHardpoints>();
+        }
     }
     public void StartConfigRoutine(int hpIdx, string weaponName, LoadoutConfigurator __instance)
     {
@@ -33,6 +37,36 @@ public class MonoHelper : MonoBehaviour
             throw e;
         }
     }
+
+    public void AttachImmediate(int hpIdx, string weaponName, LoadoutConfigurator __instance)
+    {
+        __instance.DetachImmediate(hpIdx);
+        if (__instance.uiOnly)
+        {
+            __instance.equips[hpIdx] = Armory.TryGetWeapon(weaponName).equip;
+            __instance.equips[hpIdx].OnConfigAttach(__instance);
+        }
+        else
+        {
+            GameObject instantiated = Instantiate(Armory.TryGetWeapon(weaponName).weaponObject);
+            instantiated.name = weaponName;
+            instantiated.SetActive(true);
+            Transform transform = instantiated.transform;
+            __instance.equips[hpIdx] = transform.GetComponent<HPEquippable>();
+            Traverse LCPTraverse = Traverse.Create(__instance);
+            Transform[] allTfs = (Transform[])(LCPTraverse.Field("hpTransforms").GetValue());
+            Transform hpTf = allTfs[hpIdx];
+            transform.SetParent(hpTf);
+            transform.localPosition = Vector3.zero;
+            transform.localRotation = Quaternion.identity;
+            transform.localScale = Vector3.one;
+            __instance.equips[hpIdx].OnConfigAttach(__instance);
+            if (extHardpoint != null)
+                extHardpoint.Wm_OnWeaponEquippedHPIdx(hpIdx);
+        }
+        __instance.UpdateNodes();
+    }
+
     private static IEnumerator attachRoutine(int hpIdx, string weaponName, LoadoutConfigurator __instance)
     {
         Debug.Log("Starting attach routine.");
@@ -90,7 +124,7 @@ public class MonoHelper : MonoBehaviour
         attachRoutines[hpIdx] = null;
         LCPTraverse.Field("attachRoutines").SetValue(attachRoutines);
         Debug.Log("Ended attach routine.");
-        FindAllChildrenRecursively(instantiated.transform);
+        //FindAllChildrenRecursively(instantiated.transform);
         yield break;
     }
     public static void FindAllChildrenRecursively(Transform parent) // debug function :P
@@ -106,4 +140,3 @@ public class MonoHelper : MonoBehaviour
         }
     }
 }
- 

@@ -13,11 +13,12 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 
-[HarmonyPatch(typeof(Missile), "Awake")]
-public static class Inject_Redo_Transform
+/*[HarmonyPatch(typeof(Missile), "Awake")]
+public static class Ensure_ParticleSystems
 {
     public static void Postfix(Missile __instance)
     {
+        return;
         if (__instance.exhaustTransform == null)
             return;
         Traverse missileTraverse = Traverse.Create(__instance);
@@ -31,14 +32,13 @@ public static class Inject_Redo_Transform
     }
 }
 
-[HarmonyPatch(typeof(Missile), "UpdateTargetData")]
+/*[HarmonyPatch(typeof(Missile), "UpdateTargetData")]
 public static class Check_UpdateData
 {
-    public static bool Prefix(Missile __instance)
+    public static void Postfix(Missile __instance)
     {
-        if (__instance.name.Contains("ADMM"))
+        if (__instance.name.Contains("ADMMSwarm"))
             Patch_LOALToAny.skipNext = true;
-        return true;
     }
 }
 
@@ -53,4 +53,4 @@ public static class Patch_LOALToAny
         return !skip;
     }
     public static bool skipNext = false;
-}
+}*/

@@ -19,7 +19,7 @@ public class Armory : VTOLMOD
         "45 Rail Gun",
         "Howitzer",
         "TacticalLaserSystem",
-        "AH-94 Flight Assist Solid Rocket Booster",
+        "Flight Assist Solid Rocket Booster",
         "Mistake Gun"
     };
     private void Start()
@@ -41,7 +41,6 @@ public class Armory : VTOLMOD
                 throw new FileNotFoundException("Could not find/load armory.assets, path should be " + ModFolder + "/armory.assets.");
             StartCoroutine(LoadWeaponsAsync(assBundel));
             patched = true;
-            VTOLAPI.SceneLoaded += SceneChanged; // So when the scene is changed SceneChanged is called
             if (BOOM.instance == null)
             {
                 GameObject BOOMObject = Instantiate(new GameObject()); // stupid solution time
@@ -63,7 +62,8 @@ public class Armory : VTOLMOD
                 Debug.Log("Couldn't find custom weapon " + weaponName);
                 continue;
             }
-            GameObject weaponObject = Instantiate(handler.asset as GameObject);
+            //GameObject weaponObject = Instantiate(handler.asset as GameObject);
+            GameObject weaponObject = handler.asset as GameObject;
             if (weaponObject == null)
             {
                 Debug.Log("weaponObject is null for asset " + weaponName + "?");
@@ -72,7 +72,7 @@ public class Armory : VTOLMOD
             switch (weaponName)
             {
                 case "AIM-7":
-                    StartCoroutine(LoadAim7(weaponObject));
+                    yield return StartCoroutine(LoadAim7(weaponObject));
                     break;
                 case "B61x1":
                     handler = bundle.LoadAssetAsync("B61 Bomb.prefab");
@@ -88,25 +88,25 @@ public class Armory : VTOLMOD
                     StartCoroutine(LoadAim280(weaponObject));
                     break;
                 case "45 Rail Gun":
-                    StartCoroutine(LoadRailGun(weaponObject));
+                    LoadGeneric(weaponObject, weaponName, VehicleCompat.F45A, false, true).AddComponent<RailGun>();
                     break;
                 case "ADMM":
-                    //StartCoroutine(LoadSwarmMissile(weaponObject)); No admm for you >:(
+                    StartCoroutine(LoadADMM(weaponObject));
                     break;
                 case "Howitzer":
-                    StartCoroutine(LoadGeneric(weaponObject, weaponName, VTOLVehicles.AH94, false));
+                    LoadGeneric(weaponObject, weaponName, VehicleCompat.AH94, false, true).AddComponent<Howitzer>();
                     break;
                 case "TacticalLaserSystem":
                     StartCoroutine(LoadLaser(weaponObject));
                     break;
-                case "AH-94 Flight Assist Solid Rocket Booster":
+                case "Flight Assist Solid Rocket Booster":
                     StartCoroutine(LoadSRB(weaponObject));
                     break;
                 case "Mistake Gun":
-                    StartCoroutine(LoadGeneric(weaponObject, "Mistake Gun", VTOLVehicles.AH94, false));
+                    LoadGeneric(weaponObject, "Mistake Gun", VehicleCompat.AH94, false, false);
                     break;
                 default:
-                    Debug.LogError(name + " has not been implemented yet but is inside of an asset bundle."); // this should never occur
+                    Debug.LogError(name + " has not been implemented yet but is inside of custom weapon names."); // this should never occur
                     break;
             }
             weaponObject.SetActive(false);
@@ -116,66 +116,91 @@ public class Armory : VTOLMOD
 
     private IEnumerator LoadSRB(GameObject weaponObject)
     {
-        GameObject SRB = Instantiate(weaponObject);
-        SRB.AddComponent<HPEquipJetEngine>();
-        DontDestroyOnLoad(SRB);
-        allCustomWeapons.Add("AH-94 Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB, VTOLVehicles.AH94, false, "1,2,3,4"));
-        allCustomWeapons.Add("FA-26B Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB, VTOLVehicles.FA26B, false, "11,12,13"));
-        allCustomWeapons.Add("F-45A Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB, VTOLVehicles.F45A, false, "5,6,9,10"));
-        allCustomWeapons.Add("AV-42C Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB, VTOLVehicles.AV42C, false, "1,2,3,4"));
-        //allCustomWeapons.Add("AH-94 Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB, VTOLVehicles.None, false, null));
-        SRB.SetActive(false);
+        GameObject SRB94 = weaponObject;
+        SRB94.AddComponent<HPEquipSRB>();
+        SRB94.GetComponent<VTNetworking.VTNetEntity>().netSyncs.Add(SRB94.AddComponent<SRBSync>());
+        SRB94.name = "AH-94 Flight Assist Solid Rocket Booster";
+        SRB94.GetComponentInChildren<AudioSource>().outputAudioMixerGroup = VTResources.GetExteriorMixerGroup();
+        GameObject SRB26 = Instantiate(SRB94);
+        //SRB26.AddComponent<HPEquipSRB>();
+        //SRB26.AddComponent<SRBSync>();
+        SRB26.name = "FA-26B Flight Assist Solid Rocket Booster";
+        GameObject SRB45 = Instantiate(SRB94);
+        //SRB45.AddComponent<HPEquipSRB>();
+        //SRB45.AddComponent<SRBSync>();
+        SRB45.name = "F-45A Flight Assist Solid Rocket Booster";
+        GameObject SRB42 = Instantiate(SRB94);
+        //SRB42.AddComponent<HPEquipSRB>();
+        //SRB42.AddComponent<SRBSync>();
+        SRB42.name = "AV-42C Flight Assist Solid Rocket Booster";
+        DontDestroyOnLoad(SRB94);
+        DontDestroyOnLoad(SRB26);
+        DontDestroyOnLoad(SRB45);
+        DontDestroyOnLoad(SRB42);
+
+
+        allCustomWeapons.Add("AH-94 Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB94, VehicleCompat.AH94, false, true, "1,2,3,4"));
+        allCustomWeapons.Add("FA-26B Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB26, VehicleCompat.FA26B, false, true, "11,12,13"));
+        allCustomWeapons.Add("F-45A Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB45, VehicleCompat.F45A, false, true,"5,6,9,10"));
+        allCustomWeapons.Add("AV-42C Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB42, VehicleCompat.AV42C, false, true, "1,2,3,4"));
+        //allCustomWeapons.Add("AH-94 Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB, VehicleCompat.None, false, null));
+        SRB94.SetActive(false);
+        SRB26.SetActive(false);
+        SRB45.SetActive(false);
+        SRB42.SetActive(false);
         Debug.Log("Loaded Flight Assist Solid Rocket Booster");
         yield break;
     }
 
     private IEnumerator LoadLaser(GameObject weaponObject)
     {
-        GameObject TLS = Instantiate(weaponObject);
+        GameObject TLS = weaponObject;
         TLS.AddComponent<HPEquipLaser>();
         DontDestroyOnLoad(TLS);
-        allCustomWeapons.Add("TacticalLaserSystem", new CustomEqInfo(TLS, VTOLVehicles.FA26B, false));
+        allCustomWeapons.Add("TacticalLaserSystem", new CustomEqInfo(TLS, VehicleCompat.FA26B, false, true));
         TLS.SetActive(false);
         Debug.Log("Loaded Tactical Laser System");
         yield break;
     }
 
-    private IEnumerator LoadGeneric(GameObject weaponObject, string name, VTOLVehicles vehicle, bool isExclude, string equipPoints = null)
+    private GameObject LoadGeneric(GameObject weaponObject, string name, VehicleCompat vehicle, bool isExclude, bool allowMP,string equipPoints = null)
     {
-        GameObject weaponToInject = Instantiate(weaponObject);
+        //GameObject weaponToInject = Instantiate(weaponObject);
+        GameObject weaponToInject = weaponObject;
         DontDestroyOnLoad(weaponToInject);
-        allCustomWeapons.Add(name, new CustomEqInfo(weaponToInject, vehicle, isExclude, null));
+        allCustomWeapons.Add(name, new CustomEqInfo(weaponToInject, vehicle, isExclude, allowMP, null));
         weaponToInject.SetActive(false);
         Debug.Log("Loaded " + name);
-        yield break;
+        foreach (AudioSource source in weaponToInject.GetComponentsInChildren<AudioSource>(true))
+                source.outputAudioMixerGroup = VTResources.GetExteriorMixerGroup();
+        return weaponToInject;
     }
-    private IEnumerator LoadSwarmMissile(GameObject weaponObject)
+    private IEnumerator LoadADMM(GameObject weaponObject)
     {
-        yield break; // no admm for you >:(
-        GameObject launcher = Instantiate(weaponObject);
-        HPEquipSwarmMissileLauncher sml = launcher.AddComponent<HPEquipSwarmMissileLauncher>();
-        sml.oml.loadOnStart = true;
-        allCustomWeapons.Add("ADMM", new CustomEqInfo(launcher, VTOLVehicles.FA26B, false));
+        //GameObject launcher = Instantiate(weaponObject);
+        GameObject launcher = weaponObject;
+        launcher.AddComponent<HPEquipAllDirectionalMissileLauncher>();
+        allCustomWeapons.Add("ADMM", new CustomEqInfo(launcher, VehicleCompat.FA26B, false, true));
         DontDestroyOnLoad(launcher);
         launcher.SetActive(false);
+        Debug.Log("Loaded ADMM");
         yield break;
     }
     private IEnumerator LoadRailGun(GameObject weaponObject)
     {
-        GameObject rg = Instantiate(weaponObject);
+        GameObject rg = weaponObject;
         rg.AddComponent<RailGun>();
         DontDestroyOnLoad(rg);
-        allCustomWeapons.Add("45 Rail Gun", new CustomEqInfo(rg, VTOLVehicles.F45A, false));
+        allCustomWeapons.Add("45 Rail Gun", new CustomEqInfo(rg, VehicleCompat.F45A, false, true));
         rg.SetActive(false);
-        GameObject gau22dumby = Instantiate(Resources.Load("hpequips/f45a/f45_gun") as GameObject);
-        weaponObject.GetComponentInChildren<AudioSource>().outputAudioMixerGroup = gau22dumby.GetComponentInChildren<Gun>().fireAudioSource.outputAudioMixerGroup;
-        Destroy(gau22dumby);
+        weaponObject.GetComponentInChildren<AudioSource>().outputAudioMixerGroup = VTResources.GetExteriorMixerGroup();
         Debug.Log("Loaded Rail Gun");
         yield break;
     }
     private IEnumerator LoadAim280(GameObject weaponObject)
     {
-        GameObject missileObject = Instantiate(weaponObject);
+        //GameObject missileObject = Instantiate(weaponObject);
+        GameObject missileObject = weaponObject;
         GameObject dummyEquipper = Instantiate(Resources.Load("hpequips/afighter/af_aim9") as GameObject);
         dummyEquipper.gameObject.name = "AIM-280";
         HPEquipIRML irml = dummyEquipper.GetComponent<HPEquipIRML>();
@@ -204,7 +229,7 @@ public class Armory : VTOLMOD
         irml.shortName = "AIM-280";
         irml.description = "An IR guided Air to Air missile that fries any electronics in its blast radius.";
         irml.ml.missilePrefab = missileObject;
-        irml.allowedHardpoints = "1,2,3,4,5,6,7,8,9,10"; 
+        irml.allowedHardpoints = "1,2,3,4,5,6,7,8,9,10";
         irml.ml.loadOnStart = true;
         DontDestroyOnLoad(missileObject);
         DontDestroyOnLoad(dummyEquipper);
@@ -212,9 +237,9 @@ public class Armory : VTOLMOD
         //GameObject AH94Equipper = Instantiate(dummyEquipper);
         //DontDestroyOnLoad(AH94Equipper);
         //AH94Equipper.GetComponent<HPEquippable>().allowedHardpoints = "5,6";
-        allCustomWeapons.Add("AIM-280", new CustomEqInfo(dummyEquipper, VTOLVehicles.AH94, true));
-        allCustomWeapons.Add("AIM-280 Helicopter Variant", new CustomEqInfo(dummyEquipper, VTOLVehicles.AH94, false, "5,6"));
-        //allCustomWeapons.Add("AIM-280", new CustomEqInfo(AH94Equipper, VTOLVehicles.AH94, false));
+        allCustomWeapons.Add("AIM-280", new CustomEqInfo(dummyEquipper, VehicleCompat.AH94, true, true));
+        allCustomWeapons.Add("AIM-280 Helicopter Variant", new CustomEqInfo(dummyEquipper, VehicleCompat.AH94, false, true,  "5,6"));
+        //allCustomWeapons.Add("AIM-280", new CustomEqInfo(AH94Equipper, VehicleCompat.AH94, false));
         dummyEquipper.SetActive(false);
         //AH94Equipper.SetActive(false);
         missileObject.SetActive(false);
@@ -224,9 +249,9 @@ public class Armory : VTOLMOD
     }
     private IEnumerator LoadB61(GameObject equipObject, GameObject nukeObject)
     {
-        GameObject b61 = Instantiate(nukeObject);
+        GameObject b61 = nukeObject;
         b61.AddComponent<Nuke>();
-        GameObject newEquip = Instantiate(equipObject);
+        GameObject newEquip = equipObject;
         MissileLauncher launcher = newEquip.GetComponentInChildren<MissileLauncher>();
         launcher.RemoveAllMissiles();
         launcher.missilePrefab = b61;
@@ -242,95 +267,62 @@ public class Armory : VTOLMOD
             Destroy(hp0.GetChild(i).gameObject); // why is the nuke like this
         }*/
         //MonoHelper.FindAllChildrenRecursively(b61.transform);
-        MonoHelper.FindAllChildrenRecursively(newEquip.transform);
-        allCustomWeapons.Add("B61x1", new CustomEqInfo(newEquip, VTOLVehicles.AH94, true));
+        //MonoHelper.FindAllChildrenRecursively(newEquip.transform);
+        allCustomWeapons.Add("B61", new CustomEqInfo(newEquip, VehicleCompat.AH94, true, false));
         b61.SetActive(false);
         //nukeObject.SetActive(false);
         newEquip.SetActive(false);
         Debug.Log("Loaded b61");
         yield break;
     }
+
     private IEnumerator LoadAim7(GameObject weaponObject)
     {
-        GameObject missileObject = Instantiate(weaponObject);
-        Debug.Log("A1");
+        GameObject missileObject = weaponObject;
         GameObject yoinkedEquipper = Instantiate(Resources.Load("hpequips/afighter/af_amraam") as GameObject);
-        Debug.Log("A12");
         yoinkedEquipper.SetActive(true);
-        Debug.Log("A13");
         HPEquipRadarML yoinkedMore = yoinkedEquipper.GetComponentInChildren<HPEquipRadarML>();
-        Debug.Log("A14");
         yoinkedMore.fullName = "AIM-7 Sparrow";
-        Debug.Log("A51");
         yoinkedMore.shortName = "AIM-7";
-        Debug.Log("A16");
-        yoinkedMore.description = "Semi-Active radar long range air to air missile.";
-        Debug.Log("A17");
+        yoinkedMore.description = "An antiquated Semi-Active radar long range air to air missile.";
         yoinkedMore.subLabel = "SEMI-RADAR AAM";
-        Debug.Log("A1w");
         yoinkedMore.allowedHardpoints = "1,2,3,4,5,6,7,8,9,10";
-        Debug.Log("ewaA1");
         GameObject dummyMissile = Instantiate(yoinkedMore.ml.missilePrefab);
-        Debug.Log("Aewae1");
 
         AudioSource ab = missileObject.GetComponent<AudioSource>();
-        Debug.Log("Aeryae1");
         AudioSource YOINKED = dummyMissile.GetComponent<AudioSource>();
-        Debug.Log("Awaerwa1");
         if (YOINKED != null && YOINKED.clip != null)
         {
             ab.clip = Instantiate(YOINKED.clip);
-            Debug.Log("A1wfawe");
             ab.outputAudioMixerGroup = YOINKED.outputAudioMixerGroup;
-            Debug.Log("Awerawerw1");
         }
         Destroy(dummyMissile);
-        Debug.Log("warweA1");
         yoinkedMore.gameObject.name = "AIM-7";
-        Debug.Log("A1rawreawe");
         yoinkedMore.ml.missilePrefab = missileObject;
-        Debug.Log("Aawerawe1");
         yoinkedMore.ml.RemoveAllMissiles();
-        Debug.Log("Arawer1");
         DontDestroyOnLoad(missileObject);
-        Debug.Log("Aaweraw1");
         DontDestroyOnLoad(yoinkedMore);
-        Debug.Log("Aawerawrew1");
-        allCustomWeapons.Add("AIM-7", new CustomEqInfo(yoinkedEquipper, VTOLVehicles.AV42C, true));
-        Debug.Log("Awrwaerw");
+        allCustomWeapons.Add("AIM-7", new CustomEqInfo(yoinkedEquipper, VehicleCompat.AV42C | VehicleCompat.AH94, true, true));
         missileObject.SetActive(false);
-        Debug.Log("Awaeraw1");
         yoinkedEquipper.SetActive(false);
-        Debug.Log("Awaerawe1");
         Debug.Log("Loaded Aim7");
         yield break;
-    }
-
-    private void SceneChanged(VTOLScenes scenes)
-    {
     }
 
     public static bool CheckCustomWeapon(string name)
     {
         if (String.IsNullOrEmpty(name))
             return false;
-        foreach (string customName in customweaponames)
-            if (name.ToLower().Contains(customName.ToLower()))
+        foreach (string customName in allCustomWeapons.Keys)
+            if (name.ToLower().Contains(customName.ToLower())) 
                 return true;
         return false;
     }
     public static CustomEqInfo TryGetWeapon(string name)
     {
-        if (String.IsNullOrEmpty(name))
-        {
-            Debug.Log("name is null in try get weapon.");
-            return null;
-        }
-        foreach (string customName in customweaponames)
-            if (name.ToLower().Contains(customName.ToLower()))
+        foreach (string customName in allCustomWeapons.Keys)
+            if (name.ToLower().Contains(customName.ToLower())) 
                 return allCustomWeapons[customName];
-        Debug.LogError("Couldn't retrieve custom weapon " + name);
         return null;
     }
-
 }

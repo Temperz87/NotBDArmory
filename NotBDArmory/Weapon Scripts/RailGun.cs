@@ -14,32 +14,27 @@ class RailGun : MonoBehaviour
     private Traverse toggleTraverse;
     private HPEquipGun equip;
     private WeaponManager wm;
-    private bool deployed = false;
-    private float intensity = 4f;
     private MeshRenderer[] emisiveMaterials;
     private static Color32 emissionColor = new Color32(191, 191, 191, 255);
     private ParticleSystem system;
-    private string boop; //debug gui var
-    private static List<RailGun> allRgs = new List<RailGun>();
+
     private void Awake()
     {
         this.equip = gameObject.GetComponent<HPEquipGun>();
         if (equip == null)
             Debug.LogError("equip is null.");
         equip.OnEquipped += yoinkWM;
-        this.toggle = GetComponentInChildren<AnimationToggle>();
+        this.toggle = GetComponent<AnimationToggle>();
         this.toggleTraverse = Traverse.Create(toggle);
         this.emisiveMaterials = GetComponentsInChildren<MeshRenderer>();
         foreach (MeshRenderer renderer in emisiveMaterials)
             renderer.material.EnableKeyword("_EMISSION");
         setRgEmission(Color.black);
-        equip.gun.OnFired += delegate { StartCoroutine(rampUpIntensity()); };
+        equip.gun.OnFired += delegate { StartCoroutine(rampDownIntensity()); };
         system = equip.gun.fireTransforms[0].gameObject.GetComponentInChildren<ParticleSystem>();
         equip.gun.OnFired += delegate { system.FireBurst(); }; // i did it properly baha :P
         equip.subLabel = ("RDY");
-        allRgs.Add(this);
     }
-    private void OnDestroy() => allRgs.Remove(this);
 
     private void setRgEmission(Color color)
     {
@@ -48,34 +43,35 @@ class RailGun : MonoBehaviour
     }
     private void Update()
     {
-        if (equip.itemActivated != deployed)
-            toggleAnimation();
-        if (Input.GetKeyDown(KeyCode.L))
-            toggleAnimation();
         if (Input.GetKeyDown(KeyCode.G))
-        {
             toggle.Toggle();
-        }
+        toggleAnimation();
         if (Input.GetKeyDown(KeyCode.M))
             setRgEmission((Color)(emissionColor) * 4);
         if (Input.GetKeyDown(KeyCode.N))
             setRgEmission(new Color(0, 0, 0, 0));
     }
-    private IEnumerator rampUpIntensity() // is this right?
+    private IEnumerator rampDownIntensity() // is this right?
     {
+        float intensity;
         float timeElapsed = 0;
-        while (timeElapsed < 10)
+        HUDMessages messages = wm.vm.hudMessages;
+        while ((int)timeElapsed < 10)
         {
-            foreach (RailGun gun in allRgs)
-                gun.equip.subLabel = ("COOLING: " + Math.Floor(10 - timeElapsed));
-            intensity = Mathf.Lerp(0, 4, timeElapsed / 10);
+            intensity = Mathf.SmoothStep(4, 0, timeElapsed / 10);
             timeElapsed += Time.deltaTime;
-            setRgEmission((Color)(emissionColor) * (deployed ? intensity : 0));
+            setRgEmission((Color)(emissionColor) * intensity);
+            //messages.SetMessage("RG", $"RG COOL: {(int)(10 - timeElapsed)}");
+            if (wm.ui)
+            {
+                equip.subLabel = ($"COOL: {Math.Round(10 - timeElapsed, 2)}");
+                wm.ui.hudInfo.subLabelText.text = equip.subLabel;
+            }
             yield return null;
         }
-        foreach (RailGun gun in allRgs)
-            gun.equip.subLabel = ("RDY");
-        intensity = 4;
+        //messages.RemoveMessage("RG");
+        equip.subLabel = ($"RDY");
+        setRgEmission((Color)(emissionColor) * (0));
     }
     private void yoinkWM()
     {
@@ -97,14 +93,11 @@ class RailGun : MonoBehaviour
     }
     private void toggleAnimation()
     {
+        return;
         bool deployed = (bool)toggleTraverse.Field("deployed").GetValue();
         if (equip.itemActivated != deployed)
+        {
             toggle.Toggle();
-    }
-    private void OnGUI()
-    {
-        return;
-        GUI.Label(new Rect(36, 36, 1000f, 36), "Deployed: " + deployed.ToString());
-        GUI.Label(new Rect(36, 72, 1000f, 36), (boop != null) ? boop : "null");
+        }
     }
 }

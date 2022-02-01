@@ -13,7 +13,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 [HarmonyPatch(typeof(SMSInternalWeaponAnimator), "SetupForWeapon")]
-public static class DontAnimateCustomWeapns
+public static class DontAnimateCustomWeapons
 {
     public static bool Prefix(HPEquippable eq)
     {

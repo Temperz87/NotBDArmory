@@ -23,6 +23,7 @@ class EMP : MonoBehaviour
         GetComponent<Missile>().OnMissileDetonated += DoEmpExplode;
     }
 }
+
 class Nuke : MonoBehaviour
 {
     private void Awake()

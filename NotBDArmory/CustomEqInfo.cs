@@ -4,28 +4,75 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using VTNetworking;
+
 public class CustomEqInfo
 {
-    public CustomEqInfo(GameObject weaponObject, VTOLVehicles compatability, bool exclude, string equips = null)
+    public GameObject weaponObject;
+    public VehicleCompat compatability;
+    public HPEquippable equip;
+    public bool isExclude;
+    public bool allowMP;
+
+    public CustomEqInfo(GameObject weaponObject, VehicleCompat compatability, bool exclude, bool allowMP, string equips = null)
     {
         this.weaponObject = weaponObject;
+        equip = weaponObject.GetComponent<HPEquippable>();
         this.compatability = compatability;
         this.isExclude = exclude;
+        this.allowMP = allowMP;
         if (equips != null)
         {
             weaponObject.GetComponent<HPEquippable>().allowedHardpoints = equips;
+
+        }
+        string name = weaponObject.name;
+        if (name.Contains("(Clone)"))
+            name = weaponObject.name.Substring(0, weaponObject.name.IndexOf("(Clone)"));
+        VTNetworkManager.RegisterOverrideResource("NotBDArmory/" + name, weaponObject);
+        if (equip is HPEquipMissileLauncher)
+        {
+            try
+            {
+                HPEquipMissileLauncher launcher = equip as HPEquipMissileLauncher;
+                launcher.missileResourcePath = "NotBDArmory/" + name + "Missile";
+                VTNetworkManager.RegisterOverrideResource("NotBDArmory/" + name, launcher.ml.missilePrefab);
+            }
+            catch (NullReferenceException e)
+            {
+                Debug.Log("Caught NRE while trying to add missile launcher path to override resources, of launcher " + name + " stack trace,");
+                Debug.LogException(e);
+            }
         }
     }
-    public CustomEqInfo(GameObject weaponObject) : this(weaponObject, VTOLVehicles.None, false) { } // thir arg here doesn't matter
-    public bool CompareTo(VTOLVehicles vehicle)
+    public CustomEqInfo(GameObject weaponObject) : this(weaponObject, VehicleCompat.None, false, true) { }
+
+    public bool CompareTo(VTOLVehicles vehicle) // is this overengineered? yes. Do I care? Yes ;(
     {
-        Debug.Log($"compatabillity == none: {compatability == VTOLVehicles.None}");
-        Debug.Log($"vehicle == compatability {vehicle == compatability}");
-        Debug.Log($"vehicle == compatability ^ is exclude {(vehicle == compatability) ^ isExclude}");
-        Debug.Log($"whole thing  {compatability == VTOLVehicles.None || ((vehicle == compatability) ^ isExclude)}");
-        return compatability == VTOLVehicles.None || ((vehicle == compatability) ^ isExclude); // i love hate xor
+        VehicleCompat bitMask = convert(vehicle);
+        bool compatFlag = ((int)(compatability & bitMask) != 0) ^ isExclude;
+        return compatFlag && (allowMP || (!VTNetworkManager.hasInstance || VTNetworkManager.instance.connectionState != VTNetworkManager.ConnectionStates.Connected));
     }
-    public GameObject weaponObject;
-    public VTOLVehicles compatability;
-    public bool isExclude;
+
+    public static VehicleCompat convert(VTOLVehicles v)
+    {
+        if (v == VTOLVehicles.AV42C)
+            return VehicleCompat.AV42C;
+        else if (v == VTOLVehicles.FA26B)
+            return VehicleCompat.FA26B;
+        else if (v == VTOLVehicles.F45A)
+            return VehicleCompat.F45A;
+        else if (v == VTOLVehicles.AH94)
+            return VehicleCompat.AH94;
+        return VehicleCompat.None;
+    }
+}
+
+public enum VehicleCompat // I'm just gonna leave this here, yes this is bad practice but come on
+{
+    None = 0,
+    AV42C = 1,
+    FA26B = 2,
+    F45A = 4,
+    AH94 = 8
 }

@@ -37,6 +37,44 @@ public static class CustomWeaponHelper
                 HPEquipper.hardpointIdx = idx;
                 HPEquipper.Equip();
                 customObject.transform.localPosition = wm.hardpointTransforms[idx].localPosition;
+                foreach (Component component in HPEquipper.gameObject.GetComponentsInChildren<Component>())
+                {
+                    if (component is IParentRBDependent)
+                    {
+                        ((IParentRBDependent)component).SetParentRigidbody(wm.vesselRB);
+                    }
+                    if (component is IRequiresLockingRadar)
+                    {
+                        ((IRequiresLockingRadar)component).SetLockingRadar(wm.lockingRadar);
+                    }
+                    if (component is IRequiresOpticalTargeter)
+                    {
+                        ((IRequiresOpticalTargeter)component).SetOpticalTargeter(wm.opticalTargeter);
+                    }
+                }
+                if (HPEquipper is HPEquipIRML || HPEquipper is HPEquipRadarML)
+                {
+                    if (HPEquipper.dlz)
+                    {
+                        DynamicLaunchZone.LaunchParams dynamicLaunchParams = HPEquipper.dlz.GetDynamicLaunchParams(wm.transform.forward * 343f, wm.transform.position + wm.transform.forward * 10000f, Vector3.zero);
+                        traverse.Field("maxAntiAirRange").SetValue(Mathf.Max(dynamicLaunchParams.maxLaunchRange, wm.maxAntiAirRange));
+                    }
+                }
+                else if (HPEquipper is HPEquipARML)
+                {
+                    if (HPEquipper.dlz)
+                    {
+                        DynamicLaunchZone.LaunchParams dynamicLaunchParams2 = HPEquipper.dlz.GetDynamicLaunchParams(wm.transform.forward * 343f, wm.transform.position + wm.transform.forward * 10000f, Vector3.zero);
+                        traverse.Field("maxAntiRadRange").SetValue(Mathf.Max(dynamicLaunchParams2.maxLaunchRange, wm.maxAntiRadRange));
+                    }
+                }
+                else if (HPEquipper is HPEquipOpticalML && HPEquipper.dlz)
+                {
+                    DynamicLaunchZone.LaunchParams dynamicLaunchParams3 = HPEquipper.dlz.GetDynamicLaunchParams(wm.transform.forward * 280f, wm.transform.position + wm.transform.forward * 10000f, Vector3.zero);
+                    traverse.Field("maxAGMRange").SetValue(Mathf.Max(dynamicLaunchParams3.maxLaunchRange, wm.maxAGMRange));
+                }
+                wm.ReportWeaponArming(HPEquipper);
+                wm.ReportEquipJettisonMark(HPEquipper);
                 if (HPEquipper.armable)
                     HPEquipper.armed = true;
                 if (extHp != null)
@@ -47,7 +85,6 @@ public static class CustomWeaponHelper
             }
         }
         wm.RefreshWeapon();
-        wm.SetLockingRadar(wm.lockingRadar); // to make sure that anything that needs radar will have it available, the func uses an interface to make it work
         wm.gameObject.AddComponent<CustomWeaponQuicksaveHandler>();
         Debug.Log("End try equipping weapon.");
     }
