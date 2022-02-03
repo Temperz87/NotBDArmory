@@ -43,8 +43,11 @@ public class MonoHelper : MonoBehaviour
         __instance.DetachImmediate(hpIdx);
         if (__instance.uiOnly)
         {
+            //__instance.equips[hpIdx] = Instantiate(Armory.TryGetWeapon(weaponName).equip.gameObject).GetComponent<HPEquippable>();
             __instance.equips[hpIdx] = Armory.TryGetWeapon(weaponName).equip;
             __instance.equips[hpIdx].OnConfigAttach(__instance);
+            if (__instance.equips[hpIdx] is HPEquipIRML)
+                ((HPEquipIRML)(__instance.equips[hpIdx])).irml = (IRMissileLauncher)((HPEquipIRML)(__instance.equips[hpIdx])).ml;
         }
         else
         {

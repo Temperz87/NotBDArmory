@@ -31,6 +31,7 @@ class SRBSync : VTNetSyncRPCOnly
 
 	private void srbNetFired()
 	{
+		Debug.Log("Sending RPC srb fired.");
 		SendRPC("RPC_FiredSRB");
 	}
 
@@ -38,6 +39,7 @@ class SRBSync : VTNetSyncRPCOnly
 	[VTRPC]
 	public void RPC_FiredSRB()
 	{
+		Debug.Log("Recieved SRB fired.");
 		srb.OnStartFire();
 	}
 

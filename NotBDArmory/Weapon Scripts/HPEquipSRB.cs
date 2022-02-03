@@ -63,13 +63,14 @@ class HPEquipSRB : HPEquippable, IMassObject, IParentRBDependent
         if (messageRoutine != null)
         {
             StopCoroutine(messageRoutine);
-            weaponManager.vm.hudMessages.RemoveMessage("SRB");
+            //weaponManager.vm.hudMessages.RemoveMessage("SRB");
         }
         if (srb != null)
         {
             Vector3 savedVelocity = srb.rb.velocity;
             srb.transform.parent = null;
-            srb.rb = srb.gameObject.AddComponent<Rigidbody>();
+            if (srb.rb == null)
+                srb.rb = srb.gameObject.AddComponent<Rigidbody>();
             srb.rb.interpolation = RigidbodyInterpolation.Interpolate;
             srb.rb.mass = srb.boosterMass;
             srb.rb.velocity = savedVelocity;

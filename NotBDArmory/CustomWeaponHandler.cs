@@ -8,6 +8,8 @@ using System;
 
 public static class CustomWeaponHelper
 {
+    public static bool allowWMDS = false;
+
     public static void EquipCustomWeapons(WeaponManager wm, Loadout loadout, bool quickloaded = false)
     {
         if (loadout == null)
@@ -91,13 +93,14 @@ public static class CustomWeaponHelper
 
     class CustomWeaponQuicksaveHandler : MonoBehaviour
     {
+        private WeaponManager wm;
+
         private void Awake()
         {
             QuicksaveManager.instance.OnQuickloadedMissiles += OnQuickload; // ensures that we quickload after the weaopn manager so our equips aren't overwritten by its equip funciton
             QuicksaveManager.instance.OnQuicksave += OnQuicksave;
             wm = GetComponent<WeaponManager>();
         }
-
 
         public void OnQuicksave(ConfigNode qsNode)
         {
@@ -155,6 +158,5 @@ public static class CustomWeaponHelper
             }
             Debug.Log("End quickload custom weapons.");
         }
-        private WeaponManager wm;
     }
 }

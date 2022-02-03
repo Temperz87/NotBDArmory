@@ -12,15 +12,15 @@ public class CustomEqInfo
     public VehicleCompat compatability;
     public HPEquippable equip;
     public bool isExclude;
-    public bool allowMP;
+    public bool isWMD;
 
-    public CustomEqInfo(GameObject weaponObject, VehicleCompat compatability, bool exclude, bool allowMP, string equips = null)
+    public CustomEqInfo(GameObject weaponObject, VehicleCompat compatability, bool exclude, bool WMD, string equips = null)
     {
         this.weaponObject = weaponObject;
         equip = weaponObject.GetComponent<HPEquippable>();
         this.compatability = compatability;
         this.isExclude = exclude;
-        this.allowMP = allowMP;
+        this.isWMD = WMD;
         if (equips != null)
         {
             weaponObject.GetComponent<HPEquippable>().allowedHardpoints = equips;
@@ -35,13 +35,14 @@ public class CustomEqInfo
             try
             {
                 HPEquipMissileLauncher launcher = equip as HPEquipMissileLauncher;
-                launcher.missileResourcePath = "NotBDArmory/" + name + "Missile";
-                VTNetworkManager.RegisterOverrideResource("NotBDArmory/" + name, launcher.ml.missilePrefab);
+                if (!launcher.missileResourcePath.Contains("NotBDArmory/"))
+                    launcher.missileResourcePath = "NotBDArmory/" + name + "Missile";
+                VTNetworkManager.RegisterOverrideResource(launcher.missileResourcePath, launcher.ml.missilePrefab);
             }
             catch (NullReferenceException e)
             {
                 Debug.Log("Caught NRE while trying to add missile launcher path to override resources, of launcher " + name + " stack trace,");
-                Debug.LogException(e);
+                //Debug.LogException(e);
             }
         }
     }
@@ -51,7 +52,7 @@ public class CustomEqInfo
     {
         VehicleCompat bitMask = convert(vehicle);
         bool compatFlag = ((int)(compatability & bitMask) != 0) ^ isExclude;
-        return compatFlag && (allowMP || (!VTNetworkManager.hasInstance || VTNetworkManager.instance.connectionState != VTNetworkManager.ConnectionStates.Connected));
+        return compatFlag && (!isWMD || (isWMD && CustomWeaponHelper.allowWMDS) || !VTNetworkManager.hasInstance || VTNetworkManager.instance.connectionState != VTNetworkManager.ConnectionStates.Connected);
     }
 
     public static VehicleCompat convert(VTOLVehicles v)
