@@ -16,7 +16,6 @@ public class Inject_ArmorySettings
         if (!doneSettings)
         {
             GameObject settingsTemplate = __instance.iconsIndicator.transform.parent.gameObject;
-            Debug.Log("settingsTemplate name is " + settingsTemplate.name);
             GameObject wmd = GameObject.Instantiate(settingsTemplate, settingsTemplate.transform.parent);
             wmd.SetActive(true);
             wmd.transform.localPosition = new Vector3(377.200012f, -120, 0);
@@ -25,7 +24,7 @@ public class Inject_ArmorySettings
 
             Debug.Log("Try setup vrInt");
             VRInteractable vrInt = wmd.GetComponent<VRInteractable>();
-            vrInt.interactableName = "Toggle WMDS Allowed";
+            vrInt.interactableName = "Allow NotBDArmory WMDS";
             vrInt.OnInteract = new UnityEngine.Events.UnityEvent();
             vrInt.OnInteract.AddListener(delegate
             {

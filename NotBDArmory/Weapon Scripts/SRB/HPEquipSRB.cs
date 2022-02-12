@@ -46,7 +46,6 @@ class HPEquipSRB : HPEquippable, IMassObject, IParentRBDependent
                 }
                 else
                     weaponManager.JettisonEq(hardpointIdx);
-                thisFired.Invoke();
             }
         });
     }
@@ -89,6 +88,7 @@ class HPEquipSRB : HPEquippable, IMassObject, IParentRBDependent
     {
         base.OnStartFire();
         firedSRB.Invoke(weaponManager);
+        thisFired.Invoke();
         StartCoroutine(hudMessagesRoutine());
     }
 

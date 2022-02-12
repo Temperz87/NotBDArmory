@@ -51,7 +51,7 @@ public class CustomEqInfo
     public bool CompareTo(VTOLVehicles vehicle) // is this overengineered? yes. Do I care? Yes ;(
     {
         VehicleCompat bitMask = convert(vehicle);
-        bool compatFlag = ((int)(compatability & bitMask) != 0) ^ isExclude;
+        bool compatFlag = ((int)(compatability & bitMask) != 0) ^ isExclude; // we compare & and if it isn't 0 we can assume that one of our selected masks is true, and since don't EVER want to flag and exclude to be the same so xor 
         return compatFlag && (!isWMD || (isWMD && CustomWeaponHelper.allowWMDS) || !VTNetworkManager.hasInstance || VTNetworkManager.instance.connectionState != VTNetworkManager.ConnectionStates.Connected);
     }
 

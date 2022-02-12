@@ -31,8 +31,13 @@ class SRBSync : VTNetSyncRPCOnly
 
 	private void srbNetFired()
 	{
-		Debug.Log("Sending RPC srb fired.");
-		SendRPC("RPC_FiredSRB");
+		if (base.isMine)
+		{
+			Debug.Log("Sending RPC srb fired.");
+			SendRPC("RPC_FiredSRB");
+		}
+		else
+			Debug.Log("This isn't my SRB, so I'm not net firing it.");
 	}
 
 
@@ -40,7 +45,13 @@ class SRBSync : VTNetSyncRPCOnly
 	public void RPC_FiredSRB()
 	{
 		Debug.Log("Recieved SRB fired.");
-		srb.OnStartFire();
+		if (!base.isMine) // yes, i am adding in checks for the unmp mod inside of a mod that no one will ever try to hack
+		{
+			Debug.Log("Firing!");
+			srb.OnStartFire();
+		}
+		else
+			Debug.Log("Not firing, as this is mine.");
 	}
 
 	protected override void OnNetInitialized()

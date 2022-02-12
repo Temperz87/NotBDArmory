@@ -18,7 +18,7 @@ public static class Instantiate_CustomPrefab
 {
     public static bool Prefix(ref string resourcePath)
     {
-        if (!Armory.CheckCustomWeapon(resourcePath))
+        if (!Armory.CheckCustomWeapon(resourcePath) && !resourcePath.Contains("NotBDArmory"))
         {
             Debug.Log(resourcePath + " is not a custom weapon to instantiate.");
             return true;

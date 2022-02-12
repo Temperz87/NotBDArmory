@@ -16,7 +16,7 @@ public static class CustomWeaponHelper
             return;
         if (wm == null)
         {
-            Debug.LogError("Weapn manager is null, returning.");
+            Debug.LogError("Weapon manager is null, returning.");
             return;
         }
         Traverse traverse = Traverse.Create(wm);
@@ -87,76 +87,6 @@ public static class CustomWeaponHelper
             }
         }
         wm.RefreshWeapon();
-        wm.gameObject.AddComponent<CustomWeaponQuicksaveHandler>();
         Debug.Log("End try equipping weapon.");
-    }
-
-    class CustomWeaponQuicksaveHandler : MonoBehaviour
-    {
-        private WeaponManager wm;
-
-        private void Awake()
-        {
-            QuicksaveManager.instance.OnQuickloadedMissiles += OnQuickload; // ensures that we quickload after the weaopn manager so our equips aren't overwritten by its equip funciton
-            QuicksaveManager.instance.OnQuicksave += OnQuicksave;
-            wm = GetComponent<WeaponManager>();
-        }
-
-        public void OnQuicksave(ConfigNode qsNode)
-        {
-            Debug.Log("Quicksaving custom weapons");
-            ConfigNode node = new ConfigNode("CustomWeapons");
-            for (int i = 0; i < wm.equipCount; i++)
-            {
-                HPEquippable equip = wm.GetEquip(i);
-                if (equip != null)
-                {
-                    if (Armory.CheckCustomWeapon(equip.name))
-                    {
-                        Debug.Log("Found custom weapon " + equip.name);
-                        ConfigNode equipNode = new ConfigNode("CustomEquip");
-                        equipNode.SetValue<int>("hpIdx", i);
-                        equipNode.SetValue<string>("name", equip.name);
-                        equip.OnQuicksaveEquip(equipNode);
-                        node.AddNode(equipNode);
-                    }
-                    else
-                    {
-                        Debug.Log(equip.name + " is not a custom equip.");
-                    }
-                }
-            }
-            qsNode.AddNode(node);
-        }
-
-        public void OnQuickload(ConfigNode qsNode)
-        {
-            Debug.Log("Quickloading custom weapons");
-            Loadout loadout = new Loadout();
-            loadout.hpLoadout = new string[wm.hardpointTransforms.Length];
-            Dictionary<int, ConfigNode> customHardpoints = new Dictionary<int, ConfigNode>();
-            if (qsNode.HasNode("CustomWeapons"))
-            {
-                foreach (ConfigNode configNode in qsNode.GetNode("CustomWeapons").GetNodes("CustomEquip"))
-                {
-                    string weaponName = configNode.GetValue("name");
-                    if (!Armory.CheckCustomWeapon(weaponName))
-                    {
-                        Debug.Log(weaponName + " is not a custom weapon.");
-                        continue;
-                    }
-                    Debug.Log("Found custom weapon " + weaponName);
-                    int hpIdx = ConfigNodeUtils.ParseInt(configNode.GetValue("hpIdx"));
-                    loadout.hpLoadout[hpIdx] = weaponName;
-                    customHardpoints.Add(hpIdx, configNode);
-                }
-            }
-            CustomWeaponHelper.EquipCustomWeapons(wm, loadout);
-            foreach (int key in customHardpoints.Keys)
-            {
-                wm.GetEquip(key).OnQuickloadEquip(customHardpoints[key]);
-            }
-            Debug.Log("End quickload custom weapons.");
-        }
     }
 }

@@ -5,18 +5,28 @@ using System.Collections.Generic;
 using UnityEngine;
 
 
-class BOOM : MonoBehaviour
+class BigExplosionHandler : MonoBehaviour
 {
-    public static BOOM instance { get; private set; }
+    private static BigExplosionHandler backingInstance = null;
+    private static BigExplosionHandler instance
+    {
+        get
+        {
+
+            if (backingInstance == null)
+            {
+                GameObject BOOMObject = Instantiate(new GameObject()); // stupid solution time
+                BOOMObject.AddComponent<BigExplosionHandler>();
+                BOOMObject.SetActive(true);
+                DontDestroyOnLoad(BOOMObject);
+            }
+            return backingInstance;
+        }
+    }
     private static List<RoutineHandler> allHandlers = new List<RoutineHandler>();
     private static List<HandlerQSData> quickSavedHandlers = new List<HandlerQSData>();
     private void Awake()
     {
-        if (instance == null)
-        {
-            instance = this;
-            Debug.Log("Set boom instance.");
-        }
         if (j4ShipPrefab == null)
         {
             Debug.LogWarning("j4ShipPrefab was somehow null?");
@@ -38,22 +48,22 @@ class BOOM : MonoBehaviour
         {
             //DoNukeExplode(VTOLAPI.GetPlayersVehicleGameObject().transform.position);
         }
-        else if (Input.GetKeyDown(KeyCode.O))
-            Resources.FindObjectsOfTypeAll<ParticleSystem>().SetEmissionAndActive(true);
     }
-    public void DoNukeExplode(Vector3 pos)
+    public static void DoNukeExplode(Vector3 pos) // This is a bad solution
     {
         NukeExplodeHandler handler = Instantiate(new GameObject()).AddComponent<NukeExplodeHandler>();
-        handler.targetPos = pos;
-        allHandlers.Add(handler); 
-        StartCoroutine(handler.ExplodeRoutine());
-    }
-    public void DoEmpExplode(Vector3 pos)
-    {
-        EmpExplodeHandler handler = Instantiate(new GameObject()).AddComponent<EmpExplodeHandler>(); // WHY DO YOU AND ONLY YOU NEED A MISSILE I HATE THAT I MUST DO THIS
+        handler.gameObject.SetActive(true);
         handler.targetPos = pos;
         allHandlers.Add(handler);
-        StartCoroutine(handler.ExplodeRoutine());
+        handler.StartExplode();
+    }
+    public static void DoEmpExplode(Vector3 pos)
+    {
+        EmpExplodeHandler handler = Instantiate(new GameObject()).AddComponent<EmpExplodeHandler>();
+        handler.gameObject.SetActive(true);
+        handler.targetPos = pos;
+        allHandlers.Add(handler);
+        handler.StartExplode();
     }
 
     private void CreateQuickSavedRoutines(ConfigNode _)
@@ -68,9 +78,10 @@ class BOOM : MonoBehaviour
     private void DestroyRoutines(ConfigNode _) => DestroyRoutines();
     private void DestroyRoutines()
     {
+        Debug.Log("Try destroy routines.");
         foreach (RoutineHandler routine in allHandlers)
         {
-            routine.stopCoroutine = true;
+            routine.Destroy();
         }
     }
     private void ResumeRoutines(ConfigNode _)
@@ -85,7 +96,7 @@ class BOOM : MonoBehaviour
             else
                 newHandler = Instantiate(new GameObject()).AddComponent<EmpExplodeHandler>();
             newHandler.CopyFields(handlerQSData);
-            StartCoroutine(newHandler.ExplodeRoutine());
+            newHandler.StartExplode();
             allHandlers.Add(newHandler);
         }
     }
@@ -110,8 +121,10 @@ class BOOM : MonoBehaviour
         public Vector3 targetPos;
         public float r = 0f;
         public int criticality = 6; // incase i wanna reuse it
-        public bool stopCoroutine = false;
         public bool isnuke = false;
+        public GameObject explosionObject;
+        private Coroutine routine;
+
         public RoutineHandler() { }
         /*public RoutineHandler(Vector3 targetPos)
         {
@@ -130,17 +143,33 @@ class BOOM : MonoBehaviour
             this.r = toCopy.r;
             this.criticality = toCopy.criticality;
         }
-        public virtual IEnumerator ExplodeRoutine()
+
+        public void StartExplode()
+        {
+            routine = StartCoroutine(ExplodeRoutine());
+        }
+
+        internal virtual IEnumerator ExplodeRoutine()
         {
             yield break;
         }
+
+        public virtual void Destroy()
+        {
+            Destroy(explosionObject);
+            //explodeSphereTf.gameObject.SetActive(false);
+            allHandlers.Remove(this);
+            StopCoroutine(routine);
+            Destroy(this);
+        }
+
     }
     private class NukeExplodeHandler : RoutineHandler
     {
         //public NukeExplodeHandler(Vector3 targetPos) : base(targetPos) { }
         public NukeExplodeHandler() { }
         public NukeExplodeHandler(RoutineHandler handler) : base(handler) { this.isnuke = true; }
-        public override IEnumerator ExplodeRoutine()
+        internal override IEnumerator ExplodeRoutine()
         {
             if (base.targetPos == null)
             {
@@ -156,29 +185,22 @@ class BOOM : MonoBehaviour
             explodeSphereTf.position = targetPos;
             Destroy(j4Ship);
             int curr_idx = nukeIdx++;
-            if (BOOM.messages == null)
-                BOOM.messages = VTOLAPI.GetPlayersVehicleGameObject().GetComponent<VehicleMaster>().hudMessages;
-            if (BOOM.messages != null)
+            if (BigExplosionHandler.messages == null)
+                BigExplosionHandler.messages = VTOLAPI.GetPlayersVehicleGameObject().GetComponent<VehicleMaster>().hudMessages;
+            if (BigExplosionHandler.messages != null)
                 for (; criticality > 0; criticality--)
                 {
-                    BOOM.messages.SetMessage("nuke criticality " + (curr_idx), "Nuke critical in: " + criticality);
+                    BigExplosionHandler.messages.SetMessage("nuke criticality " + (curr_idx), "Nuke critical in: " + criticality);
                     yield return new WaitForSeconds(1f);
                 }
             else
                 yield return new WaitForSeconds(6f);
-            BOOM.messages.SetMessage("nuke criticality " + (curr_idx), "BOOM!");
+            BigExplosionHandler.messages.SetMessage("nuke criticality " + (curr_idx), "BOOM!");
             explosionObject.SetActive(true);
             bool turnedoffmessage = false;
+            messages.RemoveMessage("nuke criticality " + (curr_idx));
             while (r < 20000f)
             {
-                if (stopCoroutine)
-                {
-                    Destroy(explosionObject);
-                    //explodeSphereTf.gameObject.SetActive(false);
-                    allHandlers.Remove(this);
-                    Destroy(this);
-                    yield break;
-                }
                 float num = r * r;
                 for (int i = 0; i < TargetManager.instance.allActors.Count; i++)
                 {
@@ -198,10 +220,17 @@ class BOOM : MonoBehaviour
                 yield return new WaitForSeconds(0.01f);
                 if (!turnedoffmessage)
                 {
-                    messages.RemoveMessage("nuke criticality " + (curr_idx));
+                    //messages.RemoveMessage("nuke criticality " + (curr_idx));
                 }
             }
-            explodeSphereTf.gameObject.SetActive(false);
+            float t = 0;
+            while (r > 20000f)
+            {
+                t += Time.deltaTime;
+                explodeSphereTf.localScale = Vector3.Slerp(explodeSphereTf.localScale, Vector3.zero, t);
+                yield return null;
+            }
+            Destroy(explodeSphereTf.gameObject);
             allHandlers.Remove(this);
             Destroy(this);
             yield break;
@@ -212,7 +241,7 @@ class BOOM : MonoBehaviour
         //public EmpExplodeHandler(Vector3 targetPos) : base(targetPos) { }
         public EmpExplodeHandler() { }
         public EmpExplodeHandler(RoutineHandler handler) : base(handler) { this.isnuke = false; }
-        public override IEnumerator ExplodeRoutine()
+        internal override IEnumerator ExplodeRoutine()
         {
             if (targetPos == null)
             {
@@ -220,7 +249,7 @@ class BOOM : MonoBehaviour
             }
             GameObject j4Ship = Instantiate(Resources.Load<GameObject>("units/enemy/mothership"));
             J4Mothership jM = j4Ship.GetComponent<J4Mothership>();
-            GameObject explosionObject = jM.explosionObject;
+            explosionObject = jM.explosionObject;
             explosionObject.transform.parent = null;
             explosionObject.transform.position = targetPos;
             explosionObject.GetComponent<ParticleSystem>().startColor = new Color(131f, 255f, 254f, 1f);
@@ -243,14 +272,6 @@ class BOOM : MonoBehaviour
             List<Actor> empedActors = new List<Actor>();
             while (r < 100f)
             {
-                if (stopCoroutine)
-                {
-                    Destroy(explosionObject);   
-                    //explodeSphereTf.gameObject.SetActive(false);
-                    allHandlers.Remove(this);
-                    Destroy(this);
-                    yield break;
-                }
                 float num = r * r;
                 for (int i = 0; i < TargetManager.instance.allActors.Count; i++) // baha if you're reading this just dm me to take down the mod no need for a cease and desist and/or loiyers
                 {

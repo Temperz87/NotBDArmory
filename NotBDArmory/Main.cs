@@ -14,17 +14,23 @@ public class Armory : VTOLMOD
     public static Dictionary<string, CustomEqInfo> allCustomWeapons = null;
     public static string[] customweaponames = {
         "AIM-7x1",
-        "ADMM",
+        "AIM-7x3",
+        "AIM-7x5",
+        //"AIM-7x8",
+        //"ADMM",
         "B61x1",
         "AIM-280x1",
+        "AIM-280x3",
         "45 Rail Gun",
         "Howitzer",
-        "TacticalLaserSystem",
+        //"TacticalLaserSystem",
         "Flight Assist Solid Rocket Booster",
         "Mistake Gun",
-        "MK84",
-        "MK85",
-        "MOABx1"
+        "MK84x1",
+        "MK85x1",
+        "MOABx1",
+        "ConformalGunTank",
+        //"CJSM-69_Geiravorx1"
     };
 
     public override void ModLoaded()
@@ -42,12 +48,6 @@ public class Armory : VTOLMOD
                 throw new FileNotFoundException("Could not find/load armory.assets, path should be " + ModFolder + "/armory.assets.");
             StartCoroutine(LoadWeaponsAsync(assBundel));
             patched = true;
-            if (BOOM.instance == null)
-            {
-                GameObject BOOMObject = Instantiate(new GameObject()); // stupid solution time
-                BOOMObject.AddComponent<BOOM>();
-                DontDestroyOnLoad(BOOMObject);
-            }
             VTOLAPI.SceneLoaded += SceneChanged; // So when the scene is changed SceneChanged is called
             SceneChanged(VTOLScenes.ReadyRoom);
         }
@@ -85,8 +85,12 @@ public class Armory : VTOLMOD
             switch (weaponName)
             {
                 case "AIM-7x1":
-                    //yield return StartCoroutine(LoadAim7(weaponObject));
+                case "AIM-7x3":
+                case "AIM-7x5":
                     LoadGeneric(weaponObject, weaponName, VehicleCompat.AV42C | VehicleCompat.AH94, true, false);
+                    break;
+                case "AIM-7x8":
+                    LoadGeneric(weaponObject, weaponName, VehicleCompat.F45A, false, false);
                     break;
                 case "B61x1":
                     handler = bundle.LoadAssetAsync("B61 Bomb.prefab");
@@ -99,20 +103,19 @@ public class Armory : VTOLMOD
                     StartCoroutine(LoadB61(weaponObject, handler.asset as GameObject));
                     break;
                 case "AIM-280x1":
-                    //StartCoroutine(LoadAim280(weaponObject));
+                case "AIM-280x3":
                     LoadGeneric(weaponObject, weaponName, VehicleCompat.AH94, true, false).GetComponent<MissileLauncher>().missilePrefab.AddComponent<EMP>();
                     break;
                 case "45 Rail Gun":
                     LoadGeneric(weaponObject, weaponName, VehicleCompat.F45A, false, false).AddComponent<RailGun>();
                     break;
                 case "ADMM":
-                    StartCoroutine(LoadADMM(weaponObject));
                     break;
                 case "Howitzer":
                     LoadGeneric(weaponObject, weaponName, VehicleCompat.AH94, false, false).AddComponent<Howitzer>();
                     break;
                 case "TacticalLaserSystem":
-                    StartCoroutine(LoadLaser(weaponObject));
+                    //StartCoroutine(LoadLaser(weaponObject));
                     break;
                 case "Flight Assist Solid Rocket Booster":
                     StartCoroutine(LoadSRB(weaponObject));
@@ -120,15 +123,20 @@ public class Armory : VTOLMOD
                 case "Mistake Gun":
                     LoadGeneric(weaponObject, "Mistake Gun", VehicleCompat.AH94, false, true);
                     break;
-                case "MK84":
-                    StartCoroutine(LoadBombGeneric(weaponObject, "MK84", VehicleCompat.FA26B, false, false, "MK84", "MK84", "Standard un-guided 2000lb bomb.", "1,4,5,6,7,10,11,12,13", 100f));
+                case "MK84x1":
+                    LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, false);
                     break;
-                case "MK85":
-                    StartCoroutine(LoadBombGeneric(weaponObject, "MK85", VehicleCompat.FA26B, false, false, "MK85", "MK85", "Standard un-guided 4000lb bomb.", "4,7,11,12,13", 200f));
+                case "MK85x1":
+                    LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, false);
                     break;
                 case "MOABx1":
-                    //StartCoroutine(LoadBombGeneric(weaponObject, "Mother of all Bombs", VehicleCompat.FA26B, false, true, "Mother of all Bombs", "MOAB", "Sends out an airburst comparable to that of a nuke, obliterating anything in a 1 mile radius, usually dropped from a high altitude to ensure the deployer's survival.", "13", 500f, "hpequips/afighter/fa26_gbu38x1", "GPS BOMB
                     LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, true);
+                    break;
+                case "CJSM-69_Geiravorx1":
+                    LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, false);
+                    break;
+                case "ConformalGunTank":
+                    LoadCGT(weaponObject);
                     break;
                 default:
                     Debug.LogError(name + " has not been implemented yet but is inside of custom weapon names."); // this should never occur
@@ -137,6 +145,25 @@ public class Armory : VTOLMOD
             weaponObject.SetActive(false);
         }
         Debug.Log("Done loading prefabs.");
+    }
+
+    private void LoadCGT(GameObject weaponObject)
+    {
+        GameObject cgt = LoadGeneric(weaponObject, "ConformalGunTank", VehicleCompat.F45A, false, false);
+        cgt.AddComponent<AnimateOnEquip>();
+        cgt.AddComponent<HeatGlow>();
+        Debug.Log("Try yoink cgt material.");
+        GameObject sevtf = VTResources.GetPlayerVehicle("F-45A").vehiclePrefab;
+        Debug.Log("Got CGT Material.");
+        MeshRenderer toYoink = sevtf.transform.Find("sevtf_layer_2").Find("VertStabLeftPart").Find("vertStabLeft").Find("vertStabLeft_mdl").GetComponent<MeshRenderer>();
+        Material ext = toYoink.sharedMaterial;
+
+        Debug.Log("Set Material CGT");
+        cgt.transform.Find("ConformalGunTank").GetComponent<MeshRenderer>().material = ext;
+        Debug.Log("Set Material CGT left");
+        cgt.transform.Find("ConformalGunTank").Find("LeftGunDoorGroup").Find("LeftGunDoor").GetComponent<MeshRenderer>().material = ext;
+        Debug.Log("Set Material CGT right");
+        cgt.transform.Find("ConformalGunTank").Find("RightGunDoorGroup").Find("RightGunDoor").GetComponent<MeshRenderer>().material = ext;
     }
 
     private IEnumerator LoadSRB(GameObject weaponObject)
@@ -188,7 +215,7 @@ public class Armory : VTOLMOD
         yield break;
     }
 
-    private GameObject LoadGeneric(GameObject weaponObject, string name, VehicleCompat vehicle, bool isExclude, bool isWMD, string equipPoints = null)
+    private GameObject LoadGeneric(GameObject weaponObject, string name, VehicleCompat vehicle, bool isExclude, bool isWMD, string equipPoints = null, float overrideVolue = 0f)
     {
         //GameObject weaponToInject = Instantiate(weaponObject);
         GameObject weaponToInject = weaponObject;
@@ -197,7 +224,10 @@ public class Armory : VTOLMOD
         weaponToInject.SetActive(false);
         Debug.Log("Loaded " + name);
         foreach (AudioSource source in weaponToInject.GetComponentsInChildren<AudioSource>(true))
+        {
             source.outputAudioMixerGroup = VTResources.GetExteriorMixerGroup();
+            //source.outputAudioMixerGroup.audioMixer
+        }
         return weaponToInject;
     }
 
