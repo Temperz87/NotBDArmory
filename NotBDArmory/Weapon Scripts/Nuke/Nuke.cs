@@ -9,6 +9,7 @@ class Nuke : MonoBehaviour
     private void Awake()
     {
         GetComponent<Missile>().OnMissileDetonated += DoNukeExplode;
+        VTScenario.current.qsMode = QuicksaveManager.QSModes.None;
         //if (QuicksaveManager.instance != null)
         //    QuicksaveManager.instance.OnQuickloadedMissiles += ResubEvent;
     }
@@ -17,8 +18,4 @@ class Nuke : MonoBehaviour
         Debug.Log("DoNukeExplode invoked.");
         BigExplosionHandler.DoNukeExplode(missile.transform.position);
     }
-    //private void ResubEvent(ConfigNode _)
-    //{
-    //    GetComponent<Missile>().OnMissileDetonated += DoNukeExplode;
-    //}
 }

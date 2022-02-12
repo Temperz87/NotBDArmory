@@ -39,6 +39,7 @@ public static class CustomWeaponHelper
                 HPEquipper.hardpointIdx = idx;
                 HPEquipper.Equip();
                 customObject.transform.localPosition = wm.hardpointTransforms[idx].localPosition;
+                customObject.name = hpLoadout[idx];
                 foreach (Component component in HPEquipper.gameObject.GetComponentsInChildren<Component>())
                 {
                     if (component is IParentRBDependent)

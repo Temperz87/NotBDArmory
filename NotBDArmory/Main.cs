@@ -86,8 +86,11 @@ public class Armory : VTOLMOD
             {
                 case "AIM-7x1":
                 case "AIM-7x3":
-                case "AIM-7x5":
                     LoadGeneric(weaponObject, weaponName, VehicleCompat.AV42C | VehicleCompat.AH94, true, false);
+                    break;
+                case "AIM-7x5":
+                    LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, false);
+                    LoadGeneric(weaponObject, weaponName, VehicleCompat.F45A, false, false, "5,6,7,8,9,10");
                     break;
                 case "AIM-7x8":
                     LoadGeneric(weaponObject, weaponName, VehicleCompat.F45A, false, false);
@@ -215,12 +218,12 @@ public class Armory : VTOLMOD
         yield break;
     }
 
-    private GameObject LoadGeneric(GameObject weaponObject, string name, VehicleCompat vehicle, bool isExclude, bool isWMD, string equipPoints = null, float overrideVolue = 0f)
+    private GameObject LoadGeneric(GameObject weaponObject, string name, VehicleCompat vehicle, bool isExclude, bool isWMD, string equipPoints = null)
     {
         //GameObject weaponToInject = Instantiate(weaponObject);
         GameObject weaponToInject = weaponObject;
         DontDestroyOnLoad(weaponToInject);
-        allCustomWeapons.Add(name, new CustomEqInfo(weaponToInject, vehicle, isExclude, isWMD, null));
+        allCustomWeapons.Add(name, new CustomEqInfo(weaponToInject, vehicle, isExclude, isWMD, equipPoints));
         weaponToInject.SetActive(false);
         Debug.Log("Loaded " + name);
         foreach (AudioSource source in weaponToInject.GetComponentsInChildren<AudioSource>(true))
@@ -228,6 +231,9 @@ public class Armory : VTOLMOD
             source.outputAudioMixerGroup = VTResources.GetExteriorMixerGroup();
             //source.outputAudioMixerGroup.audioMixer
         }
+        HPEquipMissileLauncher launcher = weaponObject.GetComponent<HPEquipMissileLauncher>();
+        if (launcher)
+            launcher.ml.launchAudioClips[0] = jettisonClip;
         return weaponToInject;
     }
 
@@ -277,7 +283,6 @@ public class Armory : VTOLMOD
         DontDestroyOnLoad(rg);
         allCustomWeapons.Add("45 Rail Gun", new CustomEqInfo(rg, VehicleCompat.F45A, false, true));
         rg.SetActive(false);
-        weaponObject.GetComponentInChildren<AudioSource>().outputAudioMixerGroup = VTResources.GetExteriorMixerGroup();
         Debug.Log("Loaded Rail Gun");
         yield break;
     }
@@ -340,8 +345,9 @@ public class Armory : VTOLMOD
         launcher.RemoveAllMissiles();
         DontDestroyOnLoad(newEquip);
         DontDestroyOnLoad(b61);
-        Transform hp0 = newEquip.transform.GetChild(0);
-        allCustomWeapons.Add("B61", new CustomEqInfo(newEquip, VehicleCompat.AH94, true, true));
+        allCustomWeapons.Add("B61", new CustomEqInfo(newEquip, VehicleCompat.AV42C, false, true, "1,2,3,4"));
+        allCustomWeapons.Add("B61", new CustomEqInfo(newEquip, VehicleCompat.FA26B, false, true)); // we just use the prefabs equip points here
+        allCustomWeapons.Add("B61", new CustomEqInfo(newEquip, VehicleCompat.F45A, false, true, "5,6,7,8,9,10"));
         b61.SetActive(false);
         newEquip.SetActive(false);
         Debug.Log("Loaded b61");
@@ -373,7 +379,8 @@ public class Armory : VTOLMOD
         yoinkedMore.ml.RemoveAllMissiles();
         DontDestroyOnLoad(missileObject);
         DontDestroyOnLoad(yoinkedMore);
-        allCustomWeapons.Add("AIM-7", new CustomEqInfo(yoinkedEquipper, VehicleCompat.AV42C | VehicleCompat.AH94, true, false));
+        allCustomWeapons.Add("AIM-7", new CustomEqInfo(yoinkedEquipper, VehicleCompat.FA26B, false, false));
+        allCustomWeapons.Add("AIM-7", new CustomEqInfo(yoinkedEquipper, VehicleCompat.F45A, false, false));
         missileObject.SetActive(false);
         yoinkedEquipper.SetActive(false);
         Debug.Log("Loaded Aim7");

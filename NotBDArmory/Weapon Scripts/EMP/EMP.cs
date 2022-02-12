@@ -17,8 +17,4 @@ class EMP : MonoBehaviour
         Debug.Log("DoEmpExplode invoked.");
         BigExplosionHandler.DoEmpExplode(missile.transform.position);
     }
-    private void ResubEvent(ConfigNode _)
-    {
-        //GetComponent<Missile>().OnMissileDetonated += DoEmpExplode;
-    }
 }

@@ -18,7 +18,7 @@ using UnityEngine.UI;
 public class Inject_CustomWeapons
 {
     [HarmonyPostfix]
-    public static void Postfix(LoadoutConfigurator __instance)
+    public static void Postfix(LoadoutConfigurator __instance, bool useMidflightEquips)
     {
         Debug.Log("Doing postfix.");
         Traverse traverse = Traverse.Create(__instance);
@@ -56,6 +56,17 @@ public class Inject_CustomWeapons
             {
                 Debug.LogError("Couldn't find weapon " + name);
                 continue;
+            }
+        }
+
+        if (useMidflightEquips && __instance.equips != null) // ensure that reloading works
+        {
+            foreach (HPEquippable equip in __instance.equips)
+            {
+                if (equip == null)
+                    continue;
+                if (!unlockedWeaponPrefabs.ContainsKey(equip.gameObject.name))
+                    unlockedWeaponPrefabs.Add(equip.gameObject.name, new EqInfo(GameObject.Instantiate(Armory.TryGetWeapon(equip.gameObject.name).equip.gameObject), equip.gameObject.name));
             }
         }
         traverse.Field("unlockedWeaponPrefabs").SetValue(unlockedWeaponPrefabs);
