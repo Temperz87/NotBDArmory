@@ -42,7 +42,6 @@ public class CustomEqInfo
             catch (NullReferenceException e)
             {
                 Debug.Log("Caught NRE while trying to add missile launcher path to override resources, of launcher " + name + " stack trace,");
-                //Debug.LogException(e);
             }
         }
     }

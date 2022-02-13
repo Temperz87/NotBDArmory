@@ -82,7 +82,6 @@
     <Compile Include="Harmony Patches\VTMPMainMenu.cs" />
     <Compile Include="Harmony Patches\VTMPScenarioSettings.cs" />
     <Compile Include="Harmony Patches\VTNetworkManager.cs" />
-    <Compile Include="Harmony Patches\VTOLMPBriefingRoom.cs" />
     <Compile Include="Weapon Scripts\EMP\EMP.cs" />
     <Compile Include="Weapon Scripts\General\AirburstMissile.cs" />
     <Compile Include="Weapon Scripts\General\AnimateOnEquip.cs" />
@@ -97,7 +96,6 @@
     <Compile Include="CustomWeaponHandler.cs" />
     <Compile Include="Harmony Patches\InternalWeaponBay.cs" />
     <Compile Include="Harmony Patches\LoadoutConfigurator.cs" />
-    <Compile Include="Harmony Patches\Missile.cs" />
     <Compile Include="Weapon Scripts\SRB\HPEquipSRB.cs" />
     <Compile Include="Weapon Scripts\ADMM\HPEquipSwarmMissileLauncher.cs" />
     <Compile Include="Main.cs" />

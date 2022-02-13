@@ -37,7 +37,6 @@ public class Inject_ArmorySettings
             wmdCheckmark.gameObject.SetActive(false);
             doneSettings = true;
 
-            Debug.Log("Try set text");
             wmd.GetComponentInChildren<Text>().text = "WMDS";
             Debug.Log("WMD setting made.");
 

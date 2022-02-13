@@ -57,18 +57,14 @@ class RailGun : MonoBehaviour
 
     private void yoinkWM()
     {
-        Debug.Log("try yoink wm");
         this.wm = equip.weaponManager;
         if (wm == null)
         {
             Debug.LogError("null wm on 45 rail gun");
             return;
         }
-        else
-            Debug.Log("Got wm for 45 rail gun.");
         if (wm.OnWeaponChanged == null)
         {
-            Debug.Log("on weapon changed is null, remaking it now.");
             wm.OnWeaponChanged = new UnityEvent();
         }
     }

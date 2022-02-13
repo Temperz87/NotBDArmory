@@ -42,7 +42,6 @@ class AnimateOnEquip : MonoBehaviour
         }
         if (wm.OnWeaponChanged == null)
         {
-            Debug.Log("on weapon changed is null, remaking it now.");
             wm.OnWeaponChanged = new UnityEvent();
         }
     }

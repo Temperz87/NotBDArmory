@@ -37,9 +37,8 @@ public class Armory : VTOLMOD
     {
         if (!patched)
         {
-            Debug.Log("Firstime start called.");
             HarmonyInstance.Create("Tempy.notbdarmory").PatchAll();
-            Debug.Log("Try loading prefabs...");
+            Debug.Log("Try load NBDA prefabs...");
             AssetBundle assBundel = AssetBundle.LoadFromFile(ModFolder + "/armory.assets");
 
             allCustomWeapons = new Dictionary<string, CustomEqInfo>();
@@ -89,8 +88,9 @@ public class Armory : VTOLMOD
                     LoadGeneric(weaponObject, weaponName, VehicleCompat.AV42C | VehicleCompat.AH94, true, false);
                     break;
                 case "AIM-7x5":
-                    LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, false);
-                    LoadGeneric(weaponObject, weaponName, VehicleCompat.F45A, false, false, "5,6,7,8,9,10");
+                    LoadGeneric(weaponObject, "FA26B_" + weaponName, VehicleCompat.FA26B, false, false, "1,2,3,4,5,6,7,8,9,10");
+                    GameObject f45Prefab = Instantiate(weaponObject);
+                    LoadGeneric(f45Prefab, "F45_" + weaponName, VehicleCompat.F45A, false, false, "5,6,7,8,9,10");
                     break;
                 case "AIM-7x8":
                     LoadGeneric(weaponObject, weaponName, VehicleCompat.F45A, false, false);
@@ -157,16 +157,13 @@ public class Armory : VTOLMOD
         cgt.AddComponent<HeatGlow>();
         Debug.Log("Try yoink cgt material.");
         GameObject sevtf = VTResources.GetPlayerVehicle("F-45A").vehiclePrefab;
-        Debug.Log("Got CGT Material.");
         MeshRenderer toYoink = sevtf.transform.Find("sevtf_layer_2").Find("VertStabLeftPart").Find("vertStabLeft").Find("vertStabLeft_mdl").GetComponent<MeshRenderer>();
         Material ext = toYoink.sharedMaterial;
 
-        Debug.Log("Set Material CGT");
         cgt.transform.Find("ConformalGunTank").GetComponent<MeshRenderer>().material = ext;
-        Debug.Log("Set Material CGT left");
         cgt.transform.Find("ConformalGunTank").Find("LeftGunDoorGroup").Find("LeftGunDoor").GetComponent<MeshRenderer>().material = ext;
-        Debug.Log("Set Material CGT right");
         cgt.transform.Find("ConformalGunTank").Find("RightGunDoorGroup").Find("RightGunDoor").GetComponent<MeshRenderer>().material = ext;
+        Debug.Log("Set Material CGT");
     }
 
     private IEnumerator LoadSRB(GameObject weaponObject)
@@ -222,18 +219,50 @@ public class Armory : VTOLMOD
     {
         //GameObject weaponToInject = Instantiate(weaponObject);
         GameObject weaponToInject = weaponObject;
+        weaponToInject.name = name;
         DontDestroyOnLoad(weaponToInject);
-        allCustomWeapons.Add(name, new CustomEqInfo(weaponToInject, vehicle, isExclude, isWMD, equipPoints));
-        weaponToInject.SetActive(false);
-        Debug.Log("Loaded " + name);
         foreach (AudioSource source in weaponToInject.GetComponentsInChildren<AudioSource>(true))
         {
             source.outputAudioMixerGroup = VTResources.GetExteriorMixerGroup();
             //source.outputAudioMixerGroup.audioMixer
         }
         HPEquipMissileLauncher launcher = weaponObject.GetComponent<HPEquipMissileLauncher>();
-        if (launcher)
-            launcher.ml.launchAudioClips[0] = jettisonClip;
+        if (launcher) // I know this solution isn't optimized in the slightest, but meh
+        {
+            GameObject dummyEquipper = Resources.Load("hpequips/afighter/fa26_iris-t-x1") as GameObject;
+            HPEquipIRML irml = dummyEquipper.GetComponent<HPEquipIRML>();
+            launcher.ml.launchAudioClips[0] = Instantiate(irml.ml.launchAudioClips[0]);
+            launcher.ml.launchAudioSources[0].outputAudioMixerGroup = irml.ml.launchAudioSources[0].outputAudioMixerGroup;
+
+            Missile missile = launcher.ml.missilePrefab.GetComponent<Missile>();
+            if (missile.guidanceMode == Missile.GuidanceModes.Heat || missile.guidanceMode == Missile.GuidanceModes.Radar)
+            {
+                Missile dummyMissile = irml.ml.missilePrefab.GetComponent<Missile>();
+                AudioSource source = missile.GetComponent<AudioSource>();
+                AudioSource dummySource = dummyMissile.GetComponent<AudioSource>();
+                source.outputAudioMixerGroup = dummySource.outputAudioMixerGroup;
+                source.clip = Instantiate(dummySource.clip);
+
+                if (missile.heatSeeker != null)
+                {
+                    Transform parent = missile.gameObject.transform.Find("SeekerParent");
+                    AudioSource copiedSeeker = parent.Find("SeekerAudio").GetComponent<AudioSource>();
+                    AudioSource originalSeeker = dummyMissile.transform.Find("SeekerParent").Find("SeekerAudio").GetComponent<AudioSource>();
+                    copiedSeeker.clip = Instantiate(originalSeeker.clip);
+                    copiedSeeker.outputAudioMixerGroup = Instantiate(originalSeeker.outputAudioMixerGroup);
+
+                    AudioSource copiedLock = parent.Find("LockToneAudio").GetComponent<AudioSource>();
+                    AudioSource originalLock = dummyMissile.transform.Find("SeekerParent").Find("LockToneAudio").GetComponent<AudioSource>();
+                    copiedLock.clip = Instantiate(originalLock.clip);
+                    copiedLock.outputAudioMixerGroup = originalLock.outputAudioMixerGroup;
+                }
+
+            }
+
+        }
+        allCustomWeapons.Add(name, new CustomEqInfo(weaponToInject, vehicle, isExclude, isWMD, equipPoints));
+        weaponToInject.SetActive(false);
+        Debug.Log("Loaded " + name);
         return weaponToInject;
     }
 
@@ -344,12 +373,13 @@ public class Armory : VTOLMOD
         launcher.loadOnStart = true;
         launcher.RemoveAllMissiles();
         DontDestroyOnLoad(newEquip);
+        GameObject nuke42 = Instantiate(equipObject);
+        GameObject nuke45 = Instantiate(equipObject);
         DontDestroyOnLoad(b61);
-        allCustomWeapons.Add("B61", new CustomEqInfo(newEquip, VehicleCompat.AV42C, false, true, "1,2,3,4"));
-        allCustomWeapons.Add("B61", new CustomEqInfo(newEquip, VehicleCompat.FA26B, false, true)); // we just use the prefabs equip points here
-        allCustomWeapons.Add("B61", new CustomEqInfo(newEquip, VehicleCompat.F45A, false, true, "5,6,7,8,9,10"));
+        LoadGeneric(nuke42, "42_B61x1", VehicleCompat.AV42C, false, true, "1,2,3,4");
+        LoadGeneric(equipObject, "26_B61x1", VehicleCompat.FA26B, false, true); // we just use the prefabs equip points here
+        LoadGeneric(nuke45, "45_B61x1", VehicleCompat.F45A, false, true, "5,6,7,8,9,10");
         b61.SetActive(false);
-        newEquip.SetActive(false);
         Debug.Log("Loaded b61");
         yield break;
     }

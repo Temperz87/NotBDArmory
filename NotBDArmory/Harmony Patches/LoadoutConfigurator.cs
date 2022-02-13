@@ -20,14 +20,8 @@ public class Inject_CustomWeapons
     [HarmonyPostfix]
     public static void Postfix(LoadoutConfigurator __instance, bool useMidflightEquips)
     {
-        Debug.Log("Doing postfix.");
         Traverse traverse = Traverse.Create(__instance);
-        Debug.Log("Start eq info");
         Dictionary<string, EqInfo> unlockedWeaponPrefabs = (Dictionary<string, EqInfo>)traverse.Field("unlockedWeaponPrefabs").GetValue();
-        //Debug.Log("Got eq info.");
-        //GameObject holocamDummy = Resources.FindObjectsOfTypeAll<HPEquippable>().FirstOrDefault().gameObject;
-        //if (holocamDummy == null)
-        //Debug.LogError("Dumb");
         foreach (string name in Armory.allCustomWeapons.Keys)
         {
             if (name == null || Armory.allCustomWeapons[name] == null)
@@ -71,7 +65,6 @@ public class Inject_CustomWeapons
         }
         traverse.Field("unlockedWeaponPrefabs").SetValue(unlockedWeaponPrefabs);
         traverse.Field("allWeaponPrefabs").SetValue(unlockedWeaponPrefabs);
-        Debug.Log("Postfix 200.");
     }
 }
 
@@ -131,7 +124,6 @@ public static class Ensure_Symmetry
         if (equip == null)
             return false;
         int weirdbitwiseshit = LoadoutConfigurator.EquipCompatibilityMask(equip.GetComponent<HPEquippable>());
-        Debug.Log("tried get bitwise op.");
         if (__instance.configurator.wm.symmetryIndices != null && hpIdx < __instance.configurator.wm.symmetryIndices.Length) // I have no idea how baha did this at all
         {
             int num = __instance.configurator.wm.symmetryIndices[hpIdx];
