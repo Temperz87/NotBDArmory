@@ -43,7 +43,7 @@ public class MonoHelper : MonoBehaviour
         __instance.DetachImmediate(hpIdx);
         if (__instance.uiOnly)
         {
-            if (weaponName.ToLower().Contains("howitzer") || weaponName.ToLower().Contains("mistake"))
+            if (weaponName.ToLower().Contains("howitzer") || weaponName.ToLower().Contains("mistake") || true)
             {
                 //__instance.equips[hpIdx] = Instantiate(Armory.TryGetWeapon(weaponName).equip.gameObject).GetComponent<HPEquippable>();
                 __instance.equips[hpIdx] = Armory.TryGetWeapon(weaponName).equip;

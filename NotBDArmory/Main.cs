@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
+using VTNetworking;
 using VTOLVR.Multiplayer;
 
 public class Armory : VTOLMOD
@@ -30,6 +31,7 @@ public class Armory : VTOLMOD
         "MK85x1",
         "MOABx1",
         "ConformalGunTank",
+        "TacticalLaserSystem"
         //"CJSM-69_Geiravorx1"
     };
 
@@ -110,7 +112,10 @@ public class Armory : VTOLMOD
                     LoadGeneric(weaponObject, weaponName, VehicleCompat.AH94, true, false).GetComponent<MissileLauncher>().missilePrefab.AddComponent<EMP>();
                     break;
                 case "45 Rail Gun":
-                    LoadGeneric(weaponObject, weaponName, VehicleCompat.F45A, false, false).AddComponent<RailGun>();
+                    GameObject rg = LoadGeneric(weaponObject, weaponName, VehicleCompat.F45A, false, false);
+                    rg.AddComponent<RailGun>();
+                    VTNetEntity entity = rg.GetComponent<VTNetEntity>();
+                    entity.netSyncs.Add(rg.AddComponent<AnimationToggleSync>());
                     break;
                 case "ADMM":
                     break;
@@ -118,7 +123,7 @@ public class Armory : VTOLMOD
                     LoadGeneric(weaponObject, weaponName, VehicleCompat.AH94, false, false).AddComponent<Howitzer>();
                     break;
                 case "TacticalLaserSystem":
-                    //StartCoroutine(LoadLaser(weaponObject));
+                    StartCoroutine(LoadLaser(weaponObject));
                     break;
                 case "Flight Assist Solid Rocket Booster":
                     StartCoroutine(LoadSRB(weaponObject));
@@ -154,6 +159,8 @@ public class Armory : VTOLMOD
     {
         GameObject cgt = LoadGeneric(weaponObject, "ConformalGunTank", VehicleCompat.F45A, false, false);
         cgt.AddComponent<AnimateOnEquip>();
+        VTNetEntity entity = cgt.GetComponent<VTNetEntity>();
+        entity.netSyncs.Add(cgt.AddComponent<AnimationToggleSync>());
         cgt.AddComponent<HeatGlow>();
         Debug.Log("Try yoink cgt material.");
         GameObject sevtf = VTResources.GetPlayerVehicle("F-45A").vehiclePrefab;
@@ -170,7 +177,7 @@ public class Armory : VTOLMOD
     {
         GameObject SRB94 = weaponObject;
         SRB94.AddComponent<HPEquipSRB>();
-        SRB94.GetComponent<VTNetworking.VTNetEntity>().netSyncs.Add(SRB94.AddComponent<SRBSync>());
+        SRB94.GetComponent<VTNetEntity>().netSyncs.Add(SRB94.AddComponent<SRBSync>());
         SRB94.name = "AH-94 Flight Assist Solid Rocket Booster";
         SRB94.GetComponentInChildren<AudioSource>().outputAudioMixerGroup = VTResources.GetExteriorMixerGroup();
         GameObject SRB26 = Instantiate(SRB94);
@@ -208,8 +215,15 @@ public class Armory : VTOLMOD
     {
         GameObject TLS = weaponObject;
         TLS.AddComponent<HPEquipLaser>();
+        VTNetEntity entity = TLS.GetComponent<VTNetEntity>();
+        entity.netSyncs = new List<VTNetSync>();
+        entity.netSyncs.Add(TLS.AddComponent<LaserSync>());
+        foreach (AudioSource source in TLS.GetComponentsInChildren<AudioSource>(true))
+        {
+            source.outputAudioMixerGroup = VTResources.GetExteriorMixerGroup();
+        }
         DontDestroyOnLoad(TLS);
-        allCustomWeapons.Add("TacticalLaserSystem", new CustomEqInfo(TLS, VehicleCompat.FA26B, false, false));
+        allCustomWeapons.Add("TacticalLaserSystem", new CustomEqInfo(TLS, VehicleCompat.FA26B, false, true));
         TLS.SetActive(false);
         Debug.Log("Loaded Tactical Laser System");
         yield break;
@@ -224,7 +238,6 @@ public class Armory : VTOLMOD
         foreach (AudioSource source in weaponToInject.GetComponentsInChildren<AudioSource>(true))
         {
             source.outputAudioMixerGroup = VTResources.GetExteriorMixerGroup();
-            //source.outputAudioMixerGroup.audioMixer
         }
         HPEquipMissileLauncher launcher = weaponObject.GetComponent<HPEquipMissileLauncher>();
         if (launcher) // I know this solution isn't optimized in the slightest, but meh

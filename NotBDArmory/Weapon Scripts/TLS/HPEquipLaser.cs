@@ -8,12 +8,16 @@ using UnityEngine.SceneManagement;
 using System.Reflection;
 using Harmony;
 
-class HPEquipLaser : HPEquippable, IGDSCompatible, IMassObject
+class HPEquipLaser : HPEquippable, IMassObject
 {
     private bool fire;
     private LineRenderer laserRenderer;
     private Transform fireTf;
     private AudioSource source;
+    private static int layerMask = LayerMask.GetMask("Hitbox");
+    private const float laseDistance = 7500f;
+
+    public BoolEvent firedEvent = new BoolEvent();
 
     public HPEquipLaser()
     {
@@ -44,15 +48,24 @@ class HPEquipLaser : HPEquippable, IGDSCompatible, IMassObject
         if (!fire)
             return;
         laserRenderer.SetPosition(0, fireTf.position);
-        if (Physics.Linecast(fireTf.position, GetAimPoint(), out RaycastHit info, 8))
+        if (Physics.SphereCast(fireTf.position, 10f, fireTf.forward, out RaycastHit info, laseDistance, layerMask))
         {
-            laserRenderer.SetPosition(1, info.point);
+            Debug.Log("Laser hit.");
+            laserRenderer.SetPosition(1, fireTf.position + info.distance * fireTf.forward);
             Hitbox box = info.collider.GetComponent<Hitbox>();
             if (box != null)
-                box.Damage(140f, info.point, Health.DamageTypes.Impact, null, "Laser");
+                box.Damage(70f, info.point, Health.DamageTypes.Impact, null, "Laser");
         }
         else
             laserRenderer.SetPosition(1, GetAimPoint());
+    }
+
+    public void Fire(bool fire)
+    {
+        if (fire)
+            OnStartFire();
+        else
+            OnStopFire();
     }
 
     public override void OnStartFire()      
@@ -61,6 +74,7 @@ class HPEquipLaser : HPEquippable, IGDSCompatible, IMassObject
         fire = true;
         laserRenderer.gameObject.SetActive(true);
         source.Play();
+        firedEvent.Invoke(true);
     }
     public override void OnStopFire()
     {
@@ -68,6 +82,7 @@ class HPEquipLaser : HPEquippable, IGDSCompatible, IMassObject
         fire = false;
         laserRenderer.gameObject.SetActive(false);
         source.Stop();
+        firedEvent.Invoke(false);
     }
 
     public override int GetCount()
@@ -80,14 +95,9 @@ class HPEquipLaser : HPEquippable, IGDSCompatible, IMassObject
         return fireTf;
     }
 
-    public float GetMuzzleVelocity()
-    {
-        return Mathf.Infinity;
-    }
-
     public override Vector3 GetAimPoint()
     {
-        return fireTf.position + 100f * fireTf.forward;
+        return fireTf.position + laseDistance * fireTf.forward;
     }
 
     public float GetMass()
