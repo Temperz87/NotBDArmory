@@ -7,10 +7,13 @@ using UnityEngine;
 using UnityEngine.UI;
 using VTNetworking;
 using VTOLVR.Multiplayer;
+using Valve.Newtonsoft.Json;
+using Valve.Newtonsoft.Json.Linq;
 
 public class Armory : VTOLMOD
 {
     private static bool patched = false;
+    private static string StreamingAssetsPath;
     public static Loadout sloadout;
     public static Dictionary<string, CustomEqInfo> allCustomWeapons = null;
     public static string[] customweaponames = {
@@ -24,14 +27,13 @@ public class Armory : VTOLMOD
         "AIM-280x3",
         "45 Rail Gun",
         "Howitzer",
-        //"TacticalLaserSystem",
+        "TacticalLaserSystem",
         "Flight Assist Solid Rocket Booster",
         "Mistake Gun",
         "MK84x1",
         "MK85x1",
         "MOABx1",
-        "ConformalGunTank",
-        "TacticalLaserSystem"
+        "ConformalGunTank"
         //"CJSM-69_Geiravorx1"
     };
 
@@ -39,20 +41,64 @@ public class Armory : VTOLMOD
     {
         if (!patched)
         {
+            StreamingAssetsPath = ModFolder + "/NBDA StreamingAssets/";
             HarmonyInstance.Create("Tempy.notbdarmory").PatchAll();
             Debug.Log("Try load NBDA prefabs...");
-            AssetBundle assBundel = AssetBundle.LoadFromFile(ModFolder + "/armory.assets");
-
             allCustomWeapons = new Dictionary<string, CustomEqInfo>();
-
-            if (assBundel == null)
-                throw new FileNotFoundException("Could not find/load armory.assets, path should be " + ModFolder + "/armory.assets.");
-            StartCoroutine(LoadWeaponsAsync(assBundel));
+            StartCoroutine(LoadStockWeaponsAsync());
+            StartCoroutine(LoadCustomCustomBundlesAsync());
             patched = true;
             VTOLAPI.SceneLoaded += SceneChanged; // So when the scene is changed SceneChanged is called
             SceneChanged(VTOLScenes.ReadyRoom);
         }
         base.ModLoaded();
+    }
+
+    private IEnumerator LoadCustomCustomBundlesAsync() // Special thanks to https://github.com/THE-GREAT-OVERLORD-OF-ALL-CHEESE/Custom-Scenario-Assets/ for this code
+    {
+        if (Directory.Exists(StreamingAssetsPath))
+        {
+            DirectoryInfo info = new DirectoryInfo(StreamingAssetsPath);
+
+            Debug.Log("Searching " + StreamingAssetsPath + info.Name + " for .nbda");
+            foreach (FileInfo file in info.GetFiles("*.nbda"))
+            {
+                Debug.Log("Found " + file.FullName);
+                StartCoroutine(LoadStreamedWeapons(file));
+            }
+        }
+        yield break;
+    }
+
+    private IEnumerator LoadStreamedWeapons(FileInfo info)
+    {
+
+        AssetBundleCreateRequest request = AssetBundle.LoadFromFileAsync(info.FullName);
+        yield return request;
+
+        if (request.assetBundle != null)
+        {
+            TextAsset manifest = request.assetBundle.LoadAsset("manifest.json") as TextAsset;
+            JObject o = JObject.Parse(manifest.text);
+            Dictionary<string, string> jsonLines = o.ToObject<Dictionary<string, string>>();
+            foreach (string weaponName in jsonLines.Keys)
+            {
+                AssetBundleRequest requestGun = request.assetBundle.LoadAssetAsync(weaponName + ".prefab");
+                yield return requestGun;
+                if (requestGun.asset == null)
+                {
+                    Debug.LogError("Couldn't load asset " + weaponName);
+                    continue;
+                }
+                GameObject gun = requestGun.asset as GameObject;
+                LoadGeneric(gun, weaponName, jsonLines[weaponName]);
+            }
+        }
+        else
+        {
+            Debug.Log("Couldn't load streamed bundle " + info.FullName);
+        }
+        yield break;
     }
 
     private void SceneChanged(VTOLScenes scenes)
@@ -64,8 +110,13 @@ public class Armory : VTOLMOD
         }
     }
 
-    private IEnumerator LoadWeaponsAsync(AssetBundle bundle)
+    private IEnumerator LoadStockWeaponsAsync()
     {
+        AssetBundleCreateRequest request = AssetBundle.LoadFromFileAsync(ModFolder + "/armory.assets");
+        yield return request;
+        AssetBundle bundle = request.assetBundle;
+        if (bundle == null)
+            throw new FileNotFoundException("Could not find/load armory.assets, path should be " + ModFolder + "/armory.assets.");
         foreach (string weaponName in customweaponames)
         {
             Debug.Log("Try load asset " + weaponName);
@@ -76,7 +127,6 @@ public class Armory : VTOLMOD
                 Debug.Log("Couldn't find custom weapon " + weaponName);
                 continue;
             }
-            //GameObject weaponObject = Instantiate(handler.asset as GameObject);
             GameObject weaponObject = handler.asset as GameObject;
             if (weaponObject == null)
             {
@@ -138,7 +188,7 @@ public class Armory : VTOLMOD
                     LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, false);
                     break;
                 case "MOABx1":
-                    LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, true);
+                    LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, true).AddComponent<AirburstMissile>();
                     break;
                 case "CJSM-69_Geiravorx1":
                     LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, false);
@@ -181,16 +231,10 @@ public class Armory : VTOLMOD
         SRB94.name = "AH-94 Flight Assist Solid Rocket Booster";
         SRB94.GetComponentInChildren<AudioSource>().outputAudioMixerGroup = VTResources.GetExteriorMixerGroup();
         GameObject SRB26 = Instantiate(SRB94);
-        //SRB26.AddComponent<HPEquipSRB>();
-        //SRB26.AddComponent<SRBSync>();
         SRB26.name = "FA-26B Flight Assist Solid Rocket Booster";
         GameObject SRB45 = Instantiate(SRB94);
-        //SRB45.AddComponent<HPEquipSRB>();
-        //SRB45.AddComponent<SRBSync>();
         SRB45.name = "F-45A Flight Assist Solid Rocket Booster";
         GameObject SRB42 = Instantiate(SRB94);
-        //SRB42.AddComponent<HPEquipSRB>();
-        //SRB42.AddComponent<SRBSync>();
         SRB42.name = "AV-42C Flight Assist Solid Rocket Booster";
         DontDestroyOnLoad(SRB94);
         DontDestroyOnLoad(SRB26);
@@ -202,7 +246,6 @@ public class Armory : VTOLMOD
         allCustomWeapons.Add("FA-26B Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB26, VehicleCompat.FA26B, false, false, "11,12,13"));
         allCustomWeapons.Add("F-45A Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB45, VehicleCompat.F45A, false, false, "5,6,9,10"));
         allCustomWeapons.Add("AV-42C Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB42, VehicleCompat.AV42C, false, false, "1,2,3,4"));
-        //allCustomWeapons.Add("AH-94 Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB, VehicleCompat.None, false, null));
         SRB94.SetActive(false);
         SRB26.SetActive(false);
         SRB45.SetActive(false);
@@ -229,9 +272,24 @@ public class Armory : VTOLMOD
         yield break;
     }
 
+    private GameObject LoadGeneric(GameObject weaponObject, string name, string compatability)
+    {
+        int mask = 0;
+        if (compatability.Contains("42"))
+            mask |= (int)VehicleCompat.AV42C;
+        if (compatability.Contains("26"))
+            mask |= (int)VehicleCompat.FA26B;
+        if (compatability.Contains("45"))
+            mask |= (int)VehicleCompat.F45A;
+        if (compatability.Contains("94"))
+            mask |= (int)VehicleCompat.AH94;
+
+        VehicleCompat compat = (VehicleCompat)mask;
+        return LoadGeneric(weaponObject, name, compat, false, false);
+    }
+
     private GameObject LoadGeneric(GameObject weaponObject, string name, VehicleCompat vehicle, bool isExclude, bool isWMD, string equipPoints = null)
     {
-        //GameObject weaponToInject = Instantiate(weaponObject);
         GameObject weaponToInject = weaponObject;
         weaponToInject.name = name;
         DontDestroyOnLoad(weaponToInject);
@@ -279,99 +337,14 @@ public class Armory : VTOLMOD
         return weaponToInject;
     }
 
-    private IEnumerator LoadBombGeneric(GameObject weaponObject, string name, VehicleCompat compat, bool isExclude, bool isWMD, string weaponName, string shortName, string description, string equipPoints, float cost, string yoinkedEquipper = "hpequips/afighter/fa26_mk83x1", string sublabel = "BOMB")
-    {
-        GameObject newEquip = (GameObject)Instantiate(Resources.Load(yoinkedEquipper));
-        newEquip.name = name;
-        HPEquippable bomb = newEquip.GetComponent<HPEquippable>();
-        bomb.fullName = name;
-        bomb.shortName = shortName;
-        bomb.name = weaponName;
-        bomb.subLabel = sublabel;
-        bomb.description = description;
-        bomb.allowedHardpoints = equipPoints;
-        bomb.unitCost = cost;
-        Debug.Log("Try do missile launcher");
-        MissileLauncher launcher = newEquip.GetComponentInChildren<MissileLauncher>();
-        launcher.RemoveAllMissiles();
-        launcher.missilePrefab = weaponObject;
-        launcher.loadOnStart = true;
-        launcher.RemoveAllMissiles();
-        DontDestroyOnLoad(newEquip);
-        DontDestroyOnLoad(weaponObject);
-        allCustomWeapons.Add(name, new CustomEqInfo(newEquip, compat, isExclude, isWMD));
-        weaponObject.SetActive(false);
-        newEquip.SetActive(false);
-        Debug.Log("Loaded generic bomb " + name);
-        yield break;
-    }
-
     private IEnumerator LoadADMM(GameObject weaponObject)
     {
-        //GameObject launcher = Instantiate(weaponObject);
         GameObject launcher = weaponObject;
         launcher.AddComponent<HPEquipAllDirectionalMissileLauncher>();
         allCustomWeapons.Add("ADMM", new CustomEqInfo(launcher, VehicleCompat.FA26B, false, true));
         DontDestroyOnLoad(launcher);
         launcher.SetActive(false);
         Debug.Log("Loaded ADMM");
-        yield break;
-    }
-
-    private IEnumerator LoadRailGun(GameObject weaponObject)
-    {
-        GameObject rg = weaponObject;
-        rg.AddComponent<RailGun>();
-        DontDestroyOnLoad(rg);
-        allCustomWeapons.Add("45 Rail Gun", new CustomEqInfo(rg, VehicleCompat.F45A, false, true));
-        rg.SetActive(false);
-        Debug.Log("Loaded Rail Gun");
-        yield break;
-    }
-
-    private IEnumerator LoadAim280(GameObject weaponObject)
-    {
-        //GameObject missileObject = Instantiate(weaponObject);
-        GameObject missileObject = weaponObject;
-        GameObject dummyEquipper = Instantiate(Resources.Load("hpequips/afighter/af_aim9")) as GameObject;
-        dummyEquipper.gameObject.name = "AIM-280";
-        HPEquipIRML irml = dummyEquipper.GetComponent<HPEquipIRML>();
-        GameObject dummyMissile = irml.ml.missilePrefab; // dummyMissile is the aim9 we are copying
-
-        AudioSource ab = missileObject.GetComponent<AudioSource>();
-        AudioSource YOINKED = dummyMissile.GetComponent<AudioSource>();
-        ab.clip = Instantiate(YOINKED.clip);
-        ab.outputAudioMixerGroup = YOINKED.outputAudioMixerGroup;
-
-        Transform parent = missileObject.transform.Find("SeekerParent");
-        AudioSource copiedSeeker = parent.Find("SeekerAudio").GetComponent<AudioSource>();
-        AudioSource originalSeeker = dummyMissile.transform.Find("SeekerParent").Find("SeekerAudio").GetComponent<AudioSource>();
-        copiedSeeker.clip = Instantiate(originalSeeker.clip);
-        copiedSeeker.outputAudioMixerGroup = Instantiate(originalSeeker.outputAudioMixerGroup);
-
-        AudioSource copiedLock = parent.Find("LockToneAudio").GetComponent<AudioSource>();
-        AudioSource originalLock = dummyMissile.transform.Find("SeekerParent").Find("LockToneAudio").GetComponent<AudioSource>();
-        copiedLock.clip = Instantiate(originalLock.clip);
-        copiedLock.outputAudioMixerGroup = originalLock.outputAudioMixerGroup;
-        //parent = missileObject.transform.Find("exhaustTransform");
-
-        missileObject.AddComponent<EMP>();
-        Destroy(dummyMissile);
-        irml.fullName = "AIM-280 Electrozapper";
-        irml.shortName = "AIM-280";
-        irml.description = "An IR guided Air to Air missile that fries any electronics in its blast radius.";
-        irml.ml.missilePrefab = missileObject;
-        irml.allowedHardpoints = "1,2,3,4,5,6,7,8,9,10";
-        irml.ml.loadOnStart = true;
-        DontDestroyOnLoad(missileObject);
-        DontDestroyOnLoad(dummyEquipper);
-        irml.ml.RemoveAllMissiles();
-        allCustomWeapons.Add("AIM-280", new CustomEqInfo(dummyEquipper, VehicleCompat.AH94, true, false));
-        //allCustomWeapons.Add("AIM-280 Helicopter Variant", new CustomEqInfo(dummyEquipper, VehicleCompat.AH94, false, false, "5,6"));
-        dummyEquipper.SetActive(false);
-        missileObject.SetActive(false);
-        Debug.Log("Loaded AIM-280");
-
         yield break;
     }
 
@@ -394,39 +367,6 @@ public class Armory : VTOLMOD
         LoadGeneric(nuke45, "45_B61x1", VehicleCompat.F45A, false, true, "5,6,7,8,9,10");
         b61.SetActive(false);
         Debug.Log("Loaded b61");
-        yield break;
-    }
-
-    private IEnumerator LoadAim7(GameObject weaponObject)
-    {
-        GameObject missileObject = weaponObject;
-        GameObject yoinkedEquipper = Instantiate(Resources.Load("hpequips/afighter/af_amraam")) as GameObject;
-        HPEquipRadarML yoinkedMore = yoinkedEquipper.GetComponentInChildren<HPEquipRadarML>();
-        yoinkedMore.fullName = "AIM-7 Sparrow";
-        yoinkedMore.shortName = "AIM-7";
-        yoinkedMore.description = "An antiquated Semi-Active radar long range air to air missile.";
-        yoinkedMore.subLabel = "SEMI-RADAR AAM";
-        yoinkedMore.allowedHardpoints = "1,2,3,4,5,6,7,8,9,10";
-        GameObject dummyMissile = yoinkedMore.ml.missilePrefab;
-
-        AudioSource ab = missileObject.GetComponent<AudioSource>();
-        AudioSource YOINKED = dummyMissile.GetComponent<AudioSource>();
-        if (YOINKED != null && YOINKED.clip != null)
-        {
-            ab.clip = Instantiate(YOINKED.clip);
-            ab.outputAudioMixerGroup = YOINKED.outputAudioMixerGroup;
-        }
-        Destroy(dummyMissile);
-        yoinkedMore.gameObject.name = "AIM-7";
-        yoinkedMore.ml.missilePrefab = missileObject;
-        yoinkedMore.ml.RemoveAllMissiles();
-        DontDestroyOnLoad(missileObject);
-        DontDestroyOnLoad(yoinkedMore);
-        allCustomWeapons.Add("AIM-7", new CustomEqInfo(yoinkedEquipper, VehicleCompat.FA26B, false, false));
-        allCustomWeapons.Add("AIM-7", new CustomEqInfo(yoinkedEquipper, VehicleCompat.F45A, false, false));
-        missileObject.SetActive(false);
-        yoinkedEquipper.SetActive(false);
-        Debug.Log("Loaded Aim7");
         yield break;
     }
 

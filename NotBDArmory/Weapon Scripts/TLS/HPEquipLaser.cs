@@ -16,6 +16,7 @@ class HPEquipLaser : HPEquippable, IMassObject
     private AudioSource source;
     private static int layerMask = LayerMask.GetMask("Hitbox");
     private const float laseDistance = 7500f;
+    private int charge = 500;
 
     public BoolEvent firedEvent = new BoolEvent();
 
@@ -46,7 +47,14 @@ class HPEquipLaser : HPEquippable, IMassObject
     private void FixedUpdate()
     {
         if (!fire)
+        {
+            if (charge < 500)
+                charge++;
             return;
+        }
+        if (charge <= 0)
+            return;
+        charge--;
         laserRenderer.SetPosition(0, fireTf.position);
         if (Physics.SphereCast(fireTf.position, 10f, fireTf.forward, out RaycastHit info, laseDistance, layerMask))
         {
@@ -87,7 +95,7 @@ class HPEquipLaser : HPEquippable, IMassObject
 
     public override int GetCount()
     {
-        return 1;
+        return charge;
     }
 
     public Transform GetFireTransform()
