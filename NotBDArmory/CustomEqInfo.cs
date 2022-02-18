@@ -38,6 +38,7 @@ public class CustomEqInfo
                 if (!launcher.missileResourcePath.Contains("NotBDArmory/"))
                     launcher.missileResourcePath = "NotBDArmory/" + name + "Missile";
                 VTNetworkManager.RegisterOverrideResource(launcher.missileResourcePath, launcher.ml.missilePrefab);
+
             }
             catch (NullReferenceException e)
             {

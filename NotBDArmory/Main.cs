@@ -20,8 +20,8 @@ public class Armory : VTOLMOD
         "AIM-7x1",
         "AIM-7x3",
         "AIM-7x5",
-        //"AIM-7x8",
-        //"ADMM",
+        //"AIM-7x8", no
+        //"ADMM", so much code
         "B61x1",
         "AIM-280x1",
         "AIM-280x3",
@@ -34,19 +34,21 @@ public class Armory : VTOLMOD
         "MK85x1",
         "MOABx1",
         "ConformalGunTank"
-        //"CJSM-69_Geiravorx1"
+        //"HYCMx1" this one is shelved until awacs missile gets implemented
+        //"CJSM-69_Geiravorx1" this one is just tedious :P
     };
 
     public override void ModLoaded()
     {
         if (!patched)
         {
-            StreamingAssetsPath = ModFolder + "/NBDA StreamingAssets/";
-            HarmonyInstance.Create("Tempy.notbdarmory").PatchAll();
+            VTNetworkManager.verboseLogs = true;
+            StreamingAssetsPath = Directory.GetCurrentDirectory() + @"\VTOLVR_ModLoader\mods\";
+            HarmonyInstance.Create("tempy.notbdarmory").PatchAll();
             Debug.Log("Try load NBDA prefabs...");
             allCustomWeapons = new Dictionary<string, CustomEqInfo>();
             StartCoroutine(LoadStockWeaponsAsync());
-            StartCoroutine(LoadCustomCustomBundlesAsync());
+            StartCoroutine(LoadCustomCustomBundlesAsync()); 
             patched = true;
             VTOLAPI.SceneLoaded += SceneChanged; // So when the scene is changed SceneChanged is called
             SceneChanged(VTOLScenes.ReadyRoom);
@@ -56,15 +58,17 @@ public class Armory : VTOLMOD
 
     private IEnumerator LoadCustomCustomBundlesAsync() // Special thanks to https://github.com/THE-GREAT-OVERLORD-OF-ALL-CHEESE/Custom-Scenario-Assets/ for this code
     {
-        if (Directory.Exists(StreamingAssetsPath))
+        if (Directory.Exists(StreamingAssetsPath)) 
         {
             DirectoryInfo info = new DirectoryInfo(StreamingAssetsPath);
-
-            Debug.Log("Searching " + StreamingAssetsPath + info.Name + " for .nbda");
-            foreach (FileInfo file in info.GetFiles("*.nbda"))
+            foreach (DirectoryInfo directory in info.GetDirectories())
             {
-                Debug.Log("Found " + file.FullName);
-                StartCoroutine(LoadStreamedWeapons(file));
+                //Debug.Log("Searching " + directory + " for .nbda custom weapons");
+                foreach (FileInfo file in info.GetFiles("*.nbda"))
+                {
+                    Debug.Log("Found nbda " + file.FullName);
+                    StartCoroutine(LoadStreamedWeapons(file));
+                }
             }
         }
         yield break;
@@ -78,7 +82,14 @@ public class Armory : VTOLMOD
 
         if (request.assetBundle != null)
         {
-            TextAsset manifest = request.assetBundle.LoadAsset("manifest.json") as TextAsset;
+            AssetBundleRequest requestjson = request.assetBundle.LoadAssetAsync("manifest.json");
+            yield return requestjson;
+            if (requestjson.asset == null)
+            {
+                Debug.LogError("Couldn't find manifest.json in " + info.FullName);
+                yield break;
+            }
+            TextAsset manifest = requestjson.asset as TextAsset;
             JObject o = JObject.Parse(manifest.text);
             Dictionary<string, string> jsonLines = o.ToObject<Dictionary<string, string>>();
             foreach (string weaponName in jsonLines.Keys)
@@ -188,13 +199,16 @@ public class Armory : VTOLMOD
                     LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, false);
                     break;
                 case "MOABx1":
-                    LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, true).AddComponent<AirburstMissile>();
+                    LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, true).GetComponent<MissileLauncher>().missilePrefab.AddComponent<AirburstMissile>();
                     break;
                 case "CJSM-69_Geiravorx1":
                     LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, false);
                     break;
                 case "ConformalGunTank":
                     LoadCGT(weaponObject);
+                    break;
+                case "HYCMx1":
+                    LoadGeneric(weaponObject, weaponName, VehicleCompat.F45A, false, false);
                     break;
                 default:
                     Debug.LogError(name + " has not been implemented yet but is inside of custom weapon names."); // this should never occur
@@ -230,6 +244,7 @@ public class Armory : VTOLMOD
         SRB94.GetComponent<VTNetEntity>().netSyncs.Add(SRB94.AddComponent<SRBSync>());
         SRB94.name = "AH-94 Flight Assist Solid Rocket Booster";
         SRB94.GetComponentInChildren<AudioSource>().outputAudioMixerGroup = VTResources.GetExteriorMixerGroup();
+        SRB94.SetActive(false); // just in case, so we don't destroy our net entity on it
         GameObject SRB26 = Instantiate(SRB94);
         SRB26.name = "FA-26B Flight Assist Solid Rocket Booster";
         GameObject SRB45 = Instantiate(SRB94);
@@ -258,16 +273,21 @@ public class Armory : VTOLMOD
     {
         GameObject TLS = weaponObject;
         TLS.AddComponent<HPEquipLaser>();
+        //TLS.AddComponent<HeatGlow>();
         VTNetEntity entity = TLS.GetComponent<VTNetEntity>();
-        entity.netSyncs = new List<VTNetSync>();
-        entity.netSyncs.Add(TLS.AddComponent<LaserSync>());
+        entity.netSyncs = new List<VTNetSync>
+        {
+            TLS.AddComponent<LaserSync>()
+        };
+        //entity.netSyncs.Add(TLS.AddComponent<AnimationToggleSync>());
         foreach (AudioSource source in TLS.GetComponentsInChildren<AudioSource>(true))
         {
             source.outputAudioMixerGroup = VTResources.GetExteriorMixerGroup();
         }
         DontDestroyOnLoad(TLS);
-        allCustomWeapons.Add("TacticalLaserSystem", new CustomEqInfo(TLS, VehicleCompat.FA26B, false, true));
+        allCustomWeapons.Add("TacticalLaserSystem", new CustomEqInfo(TLS, VehicleCompat.FA26B, false, false));
         TLS.SetActive(false);
+
         Debug.Log("Loaded Tactical Laser System");
         yield break;
     }
@@ -300,7 +320,7 @@ public class Armory : VTOLMOD
         HPEquipMissileLauncher launcher = weaponObject.GetComponent<HPEquipMissileLauncher>();
         if (launcher) // I know this solution isn't optimized in the slightest, but meh
         {
-            GameObject dummyEquipper = Resources.Load("hpequips/afighter/fa26_iris-t-x1") as GameObject;
+            GameObject dummyEquipper = Resources.Load("hpequips/afighter/fa26_iris-t-x1") as GameObject; // can't async this as we still need the return so rip
             HPEquipIRML irml = dummyEquipper.GetComponent<HPEquipIRML>();
             launcher.ml.launchAudioClips[0] = Instantiate(irml.ml.launchAudioClips[0]);
             launcher.ml.launchAudioSources[0].outputAudioMixerGroup = irml.ml.launchAudioSources[0].outputAudioMixerGroup;
@@ -359,13 +379,10 @@ public class Armory : VTOLMOD
         launcher.loadOnStart = true;
         launcher.RemoveAllMissiles();
         DontDestroyOnLoad(newEquip);
-        GameObject nuke42 = Instantiate(equipObject);
-        GameObject nuke45 = Instantiate(equipObject);
         DontDestroyOnLoad(b61);
-        LoadGeneric(nuke42, "42_B61x1", VehicleCompat.AV42C, false, true, "1,2,3,4");
-        LoadGeneric(equipObject, "26_B61x1", VehicleCompat.FA26B, false, true); // we just use the prefabs equip points here
-        LoadGeneric(nuke45, "45_B61x1", VehicleCompat.F45A, false, true, "5,6,7,8,9,10");
+        allCustomWeapons.Add("B61x1", new CustomEqInfo(newEquip, VehicleCompat.AH94, true, true));
         b61.SetActive(false);
+        newEquip.SetActive(false);
         Debug.Log("Loaded b61");
         yield break;
     }

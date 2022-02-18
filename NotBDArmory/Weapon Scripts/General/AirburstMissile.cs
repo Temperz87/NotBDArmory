@@ -13,17 +13,20 @@ class AirburstMissile : MonoBehaviour
     public void Awake()
     {
         missile = base.GetComponent<Missile>();
+        if (missile == null)
+            Debug.LogError(gameObject.name + " has no missile to airburst!");
         airbustAlt = missile.proxyDetonateRange;
         missile.proxyDetonateRange = 0f;
     }
 
     private void Update()
     {
-        Vector3 a = transform.position + new Vector3(0, WaterPhysics.instance.height, 0);
-        float terrainAlt = VTMapGenerator.fetch.GetHeightmapAltitude(transform.position);
-        float agl = a.y + terrainAlt;
-
-        if (agl <= airbustAlt)
+        if (!missile.fired)
+            return;
+        if (Physics.Raycast(transform.position, Vector3.down, out _, airbustAlt, 1, QueryTriggerInteraction.Ignore))
+        {
+            Debug.Log("Airbursting missile " + gameObject.name);
             missile.Detonate();
+        }
     }
 }

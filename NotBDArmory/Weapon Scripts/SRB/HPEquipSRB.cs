@@ -16,7 +16,6 @@ class HPEquipSRB : HPEquippable, IMassObject, IParentRBDependent
     public bool isLocal;
     private bool fired = false;
     private Coroutine messageRoutine;
-
     public HPEquipSRB()
     {
         name = "Flight Assist Solid Rocket Booster";
@@ -60,21 +59,9 @@ class HPEquipSRB : HPEquippable, IMassObject, IParentRBDependent
     {
         base.OnJettison();
         if (messageRoutine != null)
-        {
             StopCoroutine(messageRoutine);
-            //weaponManager.vm.hudMessages.RemoveMessage("SRB");
-        }
         if (srb != null)
-        {
-            Vector3 savedVelocity = srb.rb.velocity;
-            srb.transform.parent = null;
-            if (srb.rb == null)
-                srb.rb = srb.gameObject.AddComponent<Rigidbody>();
-            srb.rb.interpolation = RigidbodyInterpolation.Interpolate;
-            srb.rb.mass = srb.boosterMass;
-            srb.rb.velocity = savedVelocity;
-            srb.gameObject.AddComponent<FloatingOriginTransform>().SetRigidbody(srb.rb);
-        }
+            srb.Detach();
     }
 
     public override void Equip()

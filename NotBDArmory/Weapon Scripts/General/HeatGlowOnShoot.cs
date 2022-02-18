@@ -4,12 +4,14 @@ using UnityEngine;
 
 public class HeatGlow : MonoBehaviour // Thank you cheese for this script, even if i modified it a lot and you hate it now :D
 {
-    private MeshRenderer[] emisiveMaterials;
-    private float temperature;
+    public float temperature;
+    public float headAdd = 4f;
     public float heatLossRate = .5f;
-    private Gun gun;
+    public bool overriden = false;
+    public Color32 emissionColor = new Color32(32, 32, 32, 255);
 
-    private static Color32 emissionColor = new Color32(32, 32, 32, 255);
+    private MeshRenderer[] emisiveMaterials;
+    private Gun gun;
 
     private void Start()
     {
@@ -17,7 +19,8 @@ public class HeatGlow : MonoBehaviour // Thank you cheese for this script, even 
         foreach (MeshRenderer renderer in emisiveMaterials)
             renderer.material.EnableKeyword("_EMISSION");
         gun = GetComponent<Gun>();
-        gun.OnFired += AddHeat;
+        if (gun)
+            gun.OnFired += AddHeat;
     }
 
     private void Update()
@@ -29,7 +32,7 @@ public class HeatGlow : MonoBehaviour // Thank you cheese for this script, even 
 
     public void AddHeat()
     {
-        temperature += (Time.deltaTime * 4);
+        temperature += (Time.deltaTime * headAdd);
         SetEmission((Color)(emissionColor) * temperature);
     }
 

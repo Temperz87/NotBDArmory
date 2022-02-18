@@ -1,18 +1,6 @@
 ﻿using Harmony;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
-using UnityEngine.Events;
-using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
-[HarmonyPatch(typeof(WeaponManager))] //WIP MP Integration
+[HarmonyPatch(typeof(WeaponManager))]
 [HarmonyPatch("EquipWeapons")]
 public class EquipCustomWeapons
 {

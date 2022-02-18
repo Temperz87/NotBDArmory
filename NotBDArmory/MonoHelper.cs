@@ -43,13 +43,12 @@ public class MonoHelper : MonoBehaviour
         __instance.DetachImmediate(hpIdx);
         if (__instance.uiOnly)
         {
-            if (weaponName.ToLower().Contains("howitzer") || weaponName.ToLower().Contains("mistake") || true)
+            if (weaponName.ToLower().Contains("howitzer") || weaponName.ToLower().Contains("mistake") || weaponName.ToLower().Contains("railgun") || weaponName.ToLower().Contains("tacticallasersystem") || weaponName.ToLower().Contains("conformalguntank") || weaponName.ToLower().Contains("solid rocket booster") || true)
             {
-                //__instance.equips[hpIdx] = Instantiate(Armory.TryGetWeapon(weaponName).equip.gameObject).GetComponent<HPEquippable>();
                 __instance.equips[hpIdx] = Armory.TryGetWeapon(weaponName).equip;
                 __instance.equips[hpIdx].OnConfigAttach(__instance);
-                if (__instance.equips[hpIdx] is HPEquipIRML)
-                    ((HPEquipIRML)(__instance.equips[hpIdx])).irml = (IRMissileLauncher)((HPEquipIRML)(__instance.equips[hpIdx])).ml;
+                if (__instance.equips[hpIdx] is HPEquipIRML iRML)
+                    iRML.irml = (IRMissileLauncher)iRML.ml;
             }
         }
         else
@@ -133,6 +132,7 @@ public class MonoHelper : MonoBehaviour
         //FindAllChildrenRecursively(instantiated.transform);
         yield break;
     }
+
     public static void FindAllChildrenRecursively(Transform parent) // debug function :P
     {
         return;

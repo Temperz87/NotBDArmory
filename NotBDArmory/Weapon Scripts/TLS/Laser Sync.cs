@@ -13,16 +13,11 @@ using VTOLVR.Multiplayer;
 class LaserSync : VTNetSyncRPCOnly
 {
 	private HPEquipLaser laser;
-	protected override void Awake()
+
+	protected override void OnNetInitialized()
 	{
-		base.Awake();
 		if (netEntity == null)
 			Debug.LogError("Laserync has no netEntity!");
-		if (!VTOLMPUtils.IsMultiplayer())
-		{
-			enabled = false;
-			return;
-		}
 		laser = GetComponent<HPEquipLaser>();
 		if (isMine)
 			laser.firedEvent.AddListener(new UnityAction<bool>(firedLaser));
@@ -45,16 +40,9 @@ class LaserSync : VTNetSyncRPCOnly
 	{
 		bool shouldFire = fired == 1;
 		Debug.Log("Recieved Laser changed.");
-		if (!base.isMine) // yes, i am adding in checks for the unmp mod inside of a mod that no one will ever try to hack
-		{
+		if (!isMine) // yes, i am adding in checks for the unmp mod inside of a mod that no one will ever try to hack
 			laser.Fire(shouldFire);	
-		}
 		else
 			Debug.Log("Not firing, as this is mine.");
-	}
-
-	protected override void OnNetInitialized()
-	{
-		base.OnNetInitialized();
 	}
 }
