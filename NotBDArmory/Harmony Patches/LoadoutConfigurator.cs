@@ -20,6 +20,8 @@ public class Inject_CustomWeapons
             {
                 Debug.Log("Try add " + name + " to loadout configurator.");
                 CustomEqInfo info = Armory.allCustomWeapons[name];
+                if (__instance.uiOnly && !info.mpReady)
+                    continue;
                 if (!info.CompareTo(VTOLAPI.GetPlayersVehicleEnum()))
                     continue; // this used to be a return and it grinded my gears trying to find out why nothing worked in the av42c, found out why
                 if (info == null)
@@ -27,10 +29,13 @@ public class Inject_CustomWeapons
                     Debug.LogError(name + " was not found in all custom weaopns.");
                     continue;
                 }
+                if (info.weaponObject == null)
+                {
+                    Debug.LogError("info's weapon object is null.");
+                    continue;
+                }
                 GameObject customWeapon = info.weaponObject;
                 EqInfo eq = new EqInfo(GameObject.Instantiate(customWeapon), name);
-                //if (holocamDummy != null)
-                //eq.eq.transform.position = holocamDummy.transform.position; // this doesn't work
                 unlockedWeaponPrefabs.Add(name, eq);
                 __instance.availableEquipStrings.Add(name);
 

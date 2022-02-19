@@ -16,6 +16,8 @@ class HPEquipSRB : HPEquippable, IMassObject, IParentRBDependent
     public bool isLocal;
     private bool fired = false;
     private Coroutine messageRoutine;
+    private int currentWeaponIdx;
+
     public HPEquipSRB()
     {
         name = "Flight Assist Solid Rocket Booster";
@@ -33,7 +35,7 @@ class HPEquipSRB : HPEquippable, IMassObject, IParentRBDependent
     protected override void Awake()
     {
         base.Awake();
-        srb = GetComponent<SolidBooster>();
+        srb = GetComponentInChildren<SolidBooster>(true);
         firedSRB.AddListener(delegate (WeaponManager wm)
         {
             if (wm == this.weaponManager)
@@ -47,21 +49,46 @@ class HPEquipSRB : HPEquippable, IMassObject, IParentRBDependent
                     weaponManager.JettisonEq(hardpointIdx);
             }
         });
+        GameObject srbGo = srb.gameObject;
+        FlightSceneManager.instance.OnExitScene += delegate
+        {
+            Destroy(srbGo);
+            Destroy(this.gameObject);
+        };
     }
 
     private void Update()
     {
+        if (srb == null)
+        {
+            srb = GetComponentInChildren<SolidBooster>(true);
+            if (srb == null)
+            {
+                this.enabled = false;
+                return;
+            }
+        }
         if (fired && srb.transform.parent == null)
             weaponManager.JettisonEq(hardpointIdx);
+    }
+
+    public override void Jettison()
+    {
+        base.Jettison();
+        currentWeaponIdx = weaponManager.currentEquip.hardpointIdx;
     }
 
     protected override void OnJettison()
     {
         base.OnJettison();
         if (messageRoutine != null)
+        {
             StopCoroutine(messageRoutine);
+        }
         if (srb != null)
             srb.Detach();
+        if (currentWeaponIdx != hardpointIdx && currentWeaponIdx != 0)
+            weaponManager.SetWeapon(currentWeaponIdx);
     }
 
     public override void Equip()
@@ -76,21 +103,22 @@ class HPEquipSRB : HPEquippable, IMassObject, IParentRBDependent
         base.OnStartFire();
         firedSRB.Invoke(weaponManager);
         thisFired.Invoke();
-        StartCoroutine(hudMessagesRoutine());
+        if (weaponManager.isPlayer)
+            messageRoutine = StartCoroutine(hudMessagesRoutine());
     }
 
     private IEnumerator hudMessagesRoutine()
     {
-        yield break; // this sucks :(
+        yield break; // kinda not sucky?
         HUDMessages messages = weaponManager.vm.hudMessages;
         if (weaponManager.vm == null || messages == null)
             yield break;
-        float time = Time.time;
-        while (Time.time - time < srb.burnTime)
+        float dt = 0f;
+        while (dt < 30)
         {
-            messages.SetMessage("SRB", $"SRB Jettison in: {(int)(srb.burnTime - (Time.time - time))}");
+            dt += Time.deltaTime;
+            messages.SetMessage("SRB", $"SRB Burn For: {(int)(30f - dt)}");
             yield return new WaitForSeconds(1f);
-            time--;
         }
     }
 
@@ -98,6 +126,7 @@ class HPEquipSRB : HPEquippable, IMassObject, IParentRBDependent
     {
         return 1;
     }
+
     public override float GetEstimatedMass()
     {
         return GetMass();
@@ -106,7 +135,7 @@ class HPEquipSRB : HPEquippable, IMassObject, IParentRBDependent
     public float GetMass()
     {
         if (srb == null)
-            srb = GetComponent<SolidBooster>();
+            srb = GetComponentInChildren<SolidBooster>();
         return ((IMassObject)srb).GetMass();
     }
 
@@ -118,7 +147,7 @@ class HPEquipSRB : HPEquippable, IMassObject, IParentRBDependent
     public override void OnQuicksaveEquip(ConfigNode eqNode)
     {
         base.OnQuicksaveEquip(eqNode);
-        srb.OnQuicksavedMissile(eqNode, 0f);
+        srb.OnQuicksavedMissile(eqNode, 0f); // the second param is never used
     }
     public override void OnQuickloadEquip(ConfigNode eqNode)
     {

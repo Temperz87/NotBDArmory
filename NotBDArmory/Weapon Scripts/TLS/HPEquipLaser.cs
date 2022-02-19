@@ -34,6 +34,7 @@ class HPEquipLaser : HPEquippable, IMassObject
         subLabel = "LASER";
         armable = true;
         armed = true;
+        jettisonable = false;
         allowedHardpoints = "15";
         baseRadarCrossSection = .75f;
     }

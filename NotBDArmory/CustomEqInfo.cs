@@ -13,19 +13,18 @@ public class CustomEqInfo
     public HPEquippable equip;
     public bool isExclude;
     public bool isWMD;
+    public bool mpReady = false;
 
-    public CustomEqInfo(GameObject weaponObject, VehicleCompat compatability, bool exclude, bool WMD, string equips = null)
+    public CustomEqInfo(GameObject weaponObject, VehicleCompat compatability, bool exclude, bool WMD, string equips = null, bool mpReady = false)
     {
         this.weaponObject = weaponObject;
         equip = weaponObject.GetComponent<HPEquippable>();
         this.compatability = compatability;
         this.isExclude = exclude;
         this.isWMD = WMD;
+        this.mpReady = mpReady;
         if (equips != null)
-        {
             weaponObject.GetComponent<HPEquippable>().allowedHardpoints = equips;
-
-        }
         string name = weaponObject.name;
         if (name.Contains("(Clone)"))
             name = weaponObject.name.Substring(0, weaponObject.name.IndexOf("(Clone)"));
@@ -38,7 +37,6 @@ public class CustomEqInfo
                 if (!launcher.missileResourcePath.Contains("NotBDArmory/"))
                     launcher.missileResourcePath = "NotBDArmory/" + name + "Missile";
                 VTNetworkManager.RegisterOverrideResource(launcher.missileResourcePath, launcher.ml.missilePrefab);
-
             }
             catch (NullReferenceException e)
             {
@@ -46,7 +44,7 @@ public class CustomEqInfo
             }
         }
     }
-    public CustomEqInfo(GameObject weaponObject) : this(weaponObject, VehicleCompat.None, false, true) { }
+    public CustomEqInfo(GameObject weaponObject) : this(weaponObject, VehicleCompat.None, false, true, null, false) { }
 
     public bool CompareTo(VTOLVehicles vehicle) // is this overengineered? yes. Do I care? Yes ;(
     {

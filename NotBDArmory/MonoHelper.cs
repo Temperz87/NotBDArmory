@@ -43,13 +43,11 @@ public class MonoHelper : MonoBehaviour
         __instance.DetachImmediate(hpIdx);
         if (__instance.uiOnly)
         {
-            if (weaponName.ToLower().Contains("howitzer") || weaponName.ToLower().Contains("mistake") || weaponName.ToLower().Contains("railgun") || weaponName.ToLower().Contains("tacticallasersystem") || weaponName.ToLower().Contains("conformalguntank") || weaponName.ToLower().Contains("solid rocket booster") || true)
-            {
-                __instance.equips[hpIdx] = Armory.TryGetWeapon(weaponName).equip;
-                __instance.equips[hpIdx].OnConfigAttach(__instance);
-                if (__instance.equips[hpIdx] is HPEquipIRML iRML)
-                    iRML.irml = (IRMissileLauncher)iRML.ml;
-            }
+            CustomEqInfo weapon = Armory.TryGetWeapon(weaponName);
+            __instance.equips[hpIdx] = weapon.equip;
+            __instance.equips[hpIdx].OnConfigAttach(__instance);
+            if (__instance.equips[hpIdx] is HPEquipIRML iRML)
+                iRML.irml = (IRMissileLauncher)iRML.ml;
         }
         else
         {

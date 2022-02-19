@@ -27,11 +27,8 @@ class LaserSync : VTNetSyncRPCOnly
 	{
 		if (base.isMine)
 		{
-			Debug.Log("Sending RPC Laser fired.");
 			SendRPC("RPC_LaserChanged", new object[] { fired? 1 : 0 });
 		}
-		else
-			Debug.Log("This isn't my Laser, so I'm not net firing it.");
 	}
 
 
@@ -39,10 +36,7 @@ class LaserSync : VTNetSyncRPCOnly
 	public void RPC_LaserChanged(int fired)
 	{
 		bool shouldFire = fired == 1;
-		Debug.Log("Recieved Laser changed.");
 		if (!isMine) // yes, i am adding in checks for the unmp mod inside of a mod that no one will ever try to hack
 			laser.Fire(shouldFire);	
-		else
-			Debug.Log("Not firing, as this is mine.");
 	}
 }
