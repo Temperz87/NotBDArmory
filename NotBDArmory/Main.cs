@@ -33,7 +33,8 @@ public class Armory : VTOLMOD
         "MK84x1",
         "MK85x1",
         "MOABx1",
-        "ConformalGunTank"
+        "ConformalGunTank",
+        "AIR-2 Genie"
         //"HYCMx1" this one is shelved until awacs missile gets implemented
         //"CJSM-69_Geiravorx1" this one is just tedious :P
     };
@@ -48,7 +49,8 @@ public class Armory : VTOLMOD
             Debug.Log("Try load NBDA prefabs...");
             allCustomWeapons = new Dictionary<string, CustomEqInfo>();
             StartCoroutine(LoadStockWeaponsAsync());
-            StartCoroutine(LoadCustomCustomBundlesAsync()); 
+            Debug.Log("Try load custom custom weapon prefabs...");
+            StartCoroutine(LoadCustomCustomBundlesAsync());
             patched = true;
             VTOLAPI.SceneLoaded += SceneChanged; // So when the scene is changed SceneChanged is called
             SceneChanged(VTOLScenes.ReadyRoom);
@@ -58,7 +60,7 @@ public class Armory : VTOLMOD
 
     private IEnumerator LoadCustomCustomBundlesAsync() // Special thanks to https://github.com/THE-GREAT-OVERLORD-OF-ALL-CHEESE/Custom-Scenario-Assets/ for this code
     {
-        if (Directory.Exists(StreamingAssetsPath)) 
+        if (Directory.Exists(StreamingAssetsPath))
         {
             DirectoryInfo info = new DirectoryInfo(StreamingAssetsPath);
             foreach (DirectoryInfo directory in info.GetDirectories())
@@ -173,7 +175,7 @@ public class Armory : VTOLMOD
                     LoadGeneric(weaponObject, weaponName, VehicleCompat.AH94, true, false).GetComponent<MissileLauncher>().missilePrefab.AddComponent<EMP>();
                     break;
                 case "45 Rail Gun":
-                    GameObject rg = LoadGeneric(weaponObject, weaponName, VehicleCompat.F45A, false, false, null, true);
+                    GameObject rg = LoadGeneric(weaponObject, weaponName, VehicleCompat.F45A, false, false, null);
                     rg.AddComponent<RailGun>();
                     VTNetEntity entity = rg.GetComponent<VTNetEntity>();
                     entity.netSyncs.Add(rg.AddComponent<AnimationToggleSync>());
@@ -181,7 +183,7 @@ public class Armory : VTOLMOD
                 case "ADMM":
                     break;
                 case "Howitzer":
-                    LoadGeneric(weaponObject, weaponName, VehicleCompat.AH94, false, false, null, true).AddComponent<Howitzer>();
+                    LoadGeneric(weaponObject, weaponName, VehicleCompat.AH94, false, false, null).AddComponent<Howitzer>();
                     break;
                 case "TacticalLaserSystem":
                     StartCoroutine(LoadLaser(weaponObject));
@@ -190,16 +192,16 @@ public class Armory : VTOLMOD
                     StartCoroutine(LoadSRB(weaponObject));
                     break;
                 case "Mistake Gun":
-                    LoadGeneric(weaponObject, "Mistake Gun", VehicleCompat.AH94, false, true, null, true);
+                    LoadGeneric(weaponObject, "Mistake Gun", VehicleCompat.AH94, false, true, null);
                     break;
                 case "MK84x1":
-                    LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, false, null, true);
+                    LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, false, null);
                     break;
                 case "MK85x1":
-                    LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, false, null ,true);
+                    LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, false, null);
                     break;
                 case "MOABx1":
-                    LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, true, null, true).GetComponent<MissileLauncher>().missilePrefab.AddComponent<AirburstMissile>();
+                    LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, true, null).GetComponent<MissileLauncher>().missilePrefab.AddComponent<AirburstMissile>();
                     break;
                 case "CJSM-69_Geiravorx1":
                     //LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, false);
@@ -210,6 +212,9 @@ public class Armory : VTOLMOD
                 case "HYCMx1":
                     //LoadGeneric(weaponObject, weaponName, VehicleCompat.F45A, false, false);
                     break;
+                case "AIR-2 Genie":
+                    LoadGenie(weaponObject);
+                    break;
                 default:
                     Debug.LogError(name + " has not been implemented yet but is inside of custom weapon names."); // this should never occur
                     break;
@@ -219,22 +224,37 @@ public class Armory : VTOLMOD
         Debug.Log("Done loading prefabs.");
     }
 
+    private void LoadGenie(GameObject weaponObject)
+    {
+        RocketLauncher rl = weaponObject.GetComponent<RocketLauncher>();
+        RocketLauncher toYoink = (Resources.Load("hpequips/afighter/h70-x14ld") as GameObject).GetComponent<RocketLauncher>();
+        rl.launchAudioClip = Instantiate(toYoink.launchAudioClip);
+        rl.launchAudioSource.outputAudioMixerGroup = toYoink.launchAudioSource.outputAudioMixerGroup;
+
+        GameObject rocket = rl.rocketPrefab;
+        rocket.AddComponent<Nuke>();
+        rocket.AddComponent<GenieRocket>();
+
+        GameObject f45 = Instantiate(weaponObject);
+        DontDestroyOnLoad(weaponObject);
+        DontDestroyOnLoad(f45);
+
+
+
+        LoadGeneric(weaponObject, "26B_AIR-2 Genie", VehicleCompat.FA26B, false, true, null) ;
+        LoadGeneric(f45, "F45_AIR-2 Genie", VehicleCompat.F45A, false, true, "5,6,7,8,9,10,11,12,13,14,15");
+        weaponObject.SetActive(false);
+        Debug.Log("Loaded AIR-2");
+    }
+    
     private void LoadCGT(GameObject weaponObject)
     {
-        GameObject cgt = LoadGeneric(weaponObject, "ConformalGunTank", VehicleCompat.F45A, false, false, null, true);
+        GameObject cgt = LoadGeneric(weaponObject, "ConformalGunTank", VehicleCompat.F45A, false, false, null);
         cgt.AddComponent<AnimateOnEquip>();
         VTNetEntity entity = cgt.GetComponent<VTNetEntity>();
         entity.netSyncs.Add(cgt.AddComponent<AnimationToggleSync>());
         cgt.AddComponent<HeatGlow>();
-        Debug.Log("Try yoink cgt material.");
-        GameObject sevtf = VTResources.GetPlayerVehicle("F-45A").vehiclePrefab;
-        MeshRenderer toYoink = sevtf.transform.Find("sevtf_layer_2").Find("VertStabLeftPart").Find("vertStabLeft").Find("vertStabLeft_mdl").GetComponent<MeshRenderer>();
-        Material ext = toYoink.sharedMaterial;
-
-        cgt.transform.Find("ConformalGunTank").GetComponent<MeshRenderer>().material = ext;
-        cgt.transform.Find("ConformalGunTank").Find("LeftGunDoorGroup").Find("LeftGunDoor").GetComponent<MeshRenderer>().material = ext;
-        cgt.transform.Find("ConformalGunTank").Find("RightGunDoorGroup").Find("RightGunDoor").GetComponent<MeshRenderer>().material = ext;
-        Debug.Log("Set Material CGT");
+        cgt.AddComponent<CGT>();
     }
 
     private IEnumerator LoadSRB(GameObject weaponObject)
@@ -257,10 +277,10 @@ public class Armory : VTOLMOD
         DontDestroyOnLoad(SRB42);
 
 
-        allCustomWeapons.Add("AH-94 Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB94, VehicleCompat.AH94, false, false, "1,2,3,4", true));
-        allCustomWeapons.Add("FA-26B Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB26, VehicleCompat.FA26B, false, false, "11,12,13", true));
-        allCustomWeapons.Add("F-45A Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB45, VehicleCompat.F45A, false, false, "5,6,9,10", true));
-        allCustomWeapons.Add("AV-42C Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB42, VehicleCompat.AV42C, false, false, "1,2,3,4", true));
+        allCustomWeapons.Add("AH-94 Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB94, VehicleCompat.AH94, false, false, "1,2,3,4"));
+        allCustomWeapons.Add("FA-26B Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB26, VehicleCompat.FA26B, false, false, "11,12,13"));
+        allCustomWeapons.Add("F-45A Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB45, VehicleCompat.F45A, false, false, "5,6,9,10"));
+        allCustomWeapons.Add("AV-42C Flight Assist Solid Rocket Booster", new CustomEqInfo(SRB42, VehicleCompat.AV42C, false, false, "1,2,3,4"));
         SRB94.SetActive(false);
         SRB26.SetActive(false);
         SRB45.SetActive(false);
@@ -285,7 +305,7 @@ public class Armory : VTOLMOD
             source.outputAudioMixerGroup = VTResources.GetExteriorMixerGroup();
         }
         DontDestroyOnLoad(TLS);
-        allCustomWeapons.Add("TacticalLaserSystem", new CustomEqInfo(TLS, VehicleCompat.FA26B, false, false, null, true));
+        allCustomWeapons.Add("TacticalLaserSystem", new CustomEqInfo(TLS, VehicleCompat.FA26B, false, false, null));
         TLS.SetActive(false);
 
         Debug.Log("Loaded Tactical Laser System");
@@ -308,7 +328,7 @@ public class Armory : VTOLMOD
         return LoadGeneric(weaponObject, name, compat, false, false);
     }
 
-    private GameObject LoadGeneric(GameObject weaponObject, string name, VehicleCompat vehicle, bool isExclude, bool isWMD, string equipPoints = null, bool mpReady = false)
+    private GameObject LoadGeneric(GameObject weaponObject, string name, VehicleCompat vehicle, bool isExclude, bool isWMD, string equipPoints = null)
     {
         GameObject weaponToInject = weaponObject;
         weaponToInject.name = name;
@@ -347,11 +367,9 @@ public class Armory : VTOLMOD
                     copiedLock.clip = Instantiate(originalLock.clip);
                     copiedLock.outputAudioMixerGroup = originalLock.outputAudioMixerGroup;
                 }
-
             }
-
         }
-        allCustomWeapons.Add(name, new CustomEqInfo(weaponToInject, vehicle, isExclude, isWMD, equipPoints, mpReady));
+        allCustomWeapons.Add(name, new CustomEqInfo(weaponToInject, vehicle, isExclude, isWMD, equipPoints));
         weaponToInject.SetActive(false);
         Debug.Log("Loaded " + name);
         return weaponToInject;
@@ -380,7 +398,7 @@ public class Armory : VTOLMOD
         launcher.RemoveAllMissiles();
         DontDestroyOnLoad(newEquip);
         DontDestroyOnLoad(b61);
-        allCustomWeapons.Add("B61x1", new CustomEqInfo(newEquip, VehicleCompat.AH94, true, false));
+        LoadGeneric(newEquip, "B61x1", VehicleCompat.AH94, true, true, null);
         b61.SetActive(false);
         newEquip.SetActive(false);
         Debug.Log("Loaded b61");

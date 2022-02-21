@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Reflection;
 using Harmony;
+using VTOLVR.Multiplayer;
 
 class HPEquipSRB : HPEquippable, IMassObject, IParentRBDependent
 {
@@ -50,10 +51,18 @@ class HPEquipSRB : HPEquippable, IMassObject, IParentRBDependent
             }
         });
         GameObject srbGo = srb.gameObject;
+        if (VTOLMPUtils.IsMultiplayer())
         FlightSceneManager.instance.OnExitScene += delegate
         {
-            Destroy(srbGo);
-            Destroy(this.gameObject);
+            try
+            {
+                if (srbGo != null)
+                    Destroy(srbGo);
+                if (this.gameObject != null)
+                    Destroy(this.gameObject);
+            }
+            catch (NullReferenceException)
+            { }
         };
     }
 
@@ -75,7 +84,8 @@ class HPEquipSRB : HPEquippable, IMassObject, IParentRBDependent
     public override void Jettison()
     {
         base.Jettison();
-        currentWeaponIdx = weaponManager.currentEquip.hardpointIdx;
+        if (weaponManager.isPlayer && weaponManager.currentEquip != null)
+            currentWeaponIdx = weaponManager.currentEquip.hardpointIdx;
     }
 
     protected override void OnJettison()
@@ -129,13 +139,13 @@ class HPEquipSRB : HPEquippable, IMassObject, IParentRBDependent
 
     public override float GetEstimatedMass()
     {
-        return GetMass();
+        return 0.5642f;
     }
 
     public float GetMass()
     {
         if (srb == null)
-            srb = GetComponentInChildren<SolidBooster>();
+            return 0.5642f;
         return ((IMassObject)srb).GetMass();
     }
 

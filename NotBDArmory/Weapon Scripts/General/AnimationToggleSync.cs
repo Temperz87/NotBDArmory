@@ -20,7 +20,12 @@ class AnimationToggleSync : VTNetSyncRPCOnly
     {
         if (netEntity == null)
             Debug.LogError("AnimationToggleSync has no netEntity!");
-        toggle = GetComponent<AnimationToggle>();
+        toggle = GetComponentInChildren<AnimationToggle>(true);
+        if (toggle == null)
+        {
+            Debug.LogError("No animation toggle on " + gameObject.name);
+            return;
+        }
         toggleTraverse = Traverse.Create(toggle);
         lastDeployed = (bool)toggleTraverse.Field("deployed").GetValue();
     }

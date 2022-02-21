@@ -20,8 +20,6 @@ public class Inject_CustomWeapons
             {
                 Debug.Log("Try add " + name + " to loadout configurator.");
                 CustomEqInfo info = Armory.allCustomWeapons[name];
-                if (__instance.uiOnly && !info.mpReady)
-                    continue;
                 if (!info.CompareTo(VTOLAPI.GetPlayersVehicleEnum()))
                     continue; // this used to be a return and it grinded my gears trying to find out why nothing worked in the av42c, found out why
                 if (info == null)

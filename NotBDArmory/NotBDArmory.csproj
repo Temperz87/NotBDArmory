@@ -83,14 +83,17 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Harmony Patches\Missile.cs" />
     <Compile Include="Harmony Patches\VTMPMainMenu.cs" />
     <Compile Include="Harmony Patches\VTMPScenarioSettings.cs" />
     <Compile Include="Harmony Patches\VTNetworkManager.cs" />
     <Compile Include="Weapon Scripts\EMP\EMP.cs" />
     <Compile Include="Weapon Scripts\General\AirburstMissile.cs" />
     <Compile Include="Weapon Scripts\General\AnimateOnEquip.cs" />
+    <Compile Include="Weapon Scripts\CGT\CGT.cs" />
     <Compile Include="Weapon Scripts\General\HeatGlowOnShoot.cs" />
     <Compile Include="Weapon Scripts\General\AnimationToggleSync.cs" />
+    <Compile Include="Weapon Scripts\AIR2\GenieRocket.cs" />
     <Compile Include="Weapon Scripts\Howitzer\Howitzer.cs" />
     <Compile Include="Weapon Scripts\ADMM\HPEquipAllDirectionalMissileLauncher.cs" />
     <Compile Include="Weapon Scripts\Nuke\Nuke.cs" />

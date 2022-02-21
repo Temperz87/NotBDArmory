@@ -29,17 +29,16 @@ public static class Ensure_PrefabNotEnabled
     {
         if (resourcePath.Contains("NotBDArmory"))
         {
-            Debug.Log("re instantiate prefab " + resourcePath + " and __result active is " + __result.activeSelf);
+            if (VTNetworkManager.verboseLogs)
+                Debug.Log("re instantiate prefab " + resourcePath + " and __result active is " + __result.activeSelf);
             if (__result.activeSelf)
-                Debug.LogError("Why are you already active?");
+                Debug.LogError("Prefab " + resourcePath + " was already active");
             GameObject old = __result;
             __result = GameObject.Instantiate(__result);
             if (__result.activeSelf)
-                Debug.LogError("Instantiation made new prefab active.");
+                Debug.LogError("Instantiation made new prefab active " + resourcePath);
             if (old.activeSelf)
-                Debug.LogError("Instantiation made old prefab active.");
-            if (old == __result)
-                Debug.LogError("Your instances are fucked.");
+                Debug.LogError("Instantiation made old prefab active " + resourcePath);
         }
     }
 }

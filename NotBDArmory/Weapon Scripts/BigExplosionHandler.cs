@@ -21,9 +21,10 @@ static class BigExplosionHandler
         QuicksaveManager.instance.OnQuickloadLate += ResumeRoutines;
     }
 
-    public static void DoNukeExplode(Vector3 pos) // This is a bad solution
+    public static void DoNukeExplode(Vector3 pos, float radius) // This is a bad solution
     {
         NukeExplodeHandler handler = GameObject.Instantiate(new GameObject()).AddComponent<NukeExplodeHandler>();
+        handler.maxRadius = radius;
         handler.gameObject.SetActive(true);
         handler.targetPos = pos;
         allHandlers.Add(handler);
@@ -132,7 +133,7 @@ static class BigExplosionHandler
     }
     private class NukeExplodeHandler : RoutineHandler
     {
-        //public NukeExplodeHandler(Vector3 targetPos) : base(targetPos) { }
+        public float maxRadius = 0f;
         public NukeExplodeHandler() { }
         public NukeExplodeHandler(RoutineHandler handler) : base(handler) { this.isnuke = true; }
         internal override IEnumerator ExplodeRoutine()
@@ -151,32 +152,36 @@ static class BigExplosionHandler
             explodeSphereTf.position = targetPos;
             Destroy(j4Ship);
             int curr_idx = nukeIdx++;
-            if (BigExplosionHandler.messages == null)
-                BigExplosionHandler.messages = VTOLAPI.GetPlayersVehicleGameObject().GetComponent<VehicleMaster>().hudMessages;
-            if (BigExplosionHandler.messages != null)
-                for (; criticality > 0; criticality--)
-                {
-                    BigExplosionHandler.messages.SetMessage("nuke criticality " + (curr_idx), "Nuke critical in: " + criticality);
-                    yield return new WaitForSeconds(1f);
-                }
-            else
-                yield return new WaitForSeconds(6f);
-            explosionObject.SetActive(true);
-            messages.RemoveMessage("nuke criticality " + (curr_idx));
-            while (r < 20000f && explosionObject != null)
+            if (maxRadius > 18000f)
             {
-                float num = r * r;
-                for (int i = 0; i < TargetManager.instance.allActors.Count; i++)
-                {
-                    Actor actor = TargetManager.instance.allActors[i];
-                    if (actor.alive && (actor.position - explosionObject.transform.position).sqrMagnitude < num && actor.transform != explosionObject.transform)
+                if (BigExplosionHandler.messages == null)
+                    BigExplosionHandler.messages = VTOLAPI.GetPlayersVehicleGameObject().GetComponent<VehicleMaster>().hudMessages;
+                if (BigExplosionHandler.messages != null)
+                    for (; criticality > 0; criticality--)
                     {
-                        Health[] component = actor.GetComponentsInChildren<Health>();
-                        if (component != null)
-                            foreach (var health in component)
-                            {
-                                health.Kill();
-                            }
+                        BigExplosionHandler.messages.SetMessage("nuke criticality " + (curr_idx), "Nuke critical in: " + criticality);
+                        yield return new WaitForSeconds(1f);
+                    }
+                else
+                    yield return new WaitForSeconds(6f);
+                messages.RemoveMessage("nuke criticality " + (curr_idx));
+            }
+            else
+                explosionObject.GetComponent<ParticleSystem>().startSize = 70f;
+            explosionObject.SetActive(true);
+            while (r < maxRadius && explosionObject != null)
+            {
+                if (explosionObject == null)
+                    break;
+                List<Actor> toNuke = new List<Actor>();
+                Actor.GetActorsInRadius(explosionObject.transform.position, r, Teams.Allied, TeamOptions.BothTeams, toNuke);
+                foreach (Actor actor in toNuke)
+                {
+                    Health[] component = actor.GetComponentsInChildren<Health>();
+                    if (component != null)
+                    {
+                        foreach (var health in component)
+                            health.Kill();
                     }
                 }
                 explodeSphereTf.localScale = 2f * r * Vector3.one;
@@ -184,10 +189,10 @@ static class BigExplosionHandler
                 yield return new WaitForSeconds(0.01f);
             }
             float t = 0;
-            while (r > 20000f && explosionObject != null)
+            while (t < 5f && explosionObject != null)
             {
                 t += Time.deltaTime;
-                explodeSphereTf.localScale = Vector3.Slerp(explodeSphereTf.localScale, Vector3.zero, t);
+                explodeSphereTf.localScale = Vector3.Lerp(explodeSphereTf.localScale, Vector3.zero, Mathf.SmoothStep(0, 1, t));
                 yield return null;
             }
             Destroy(explodeSphereTf.gameObject);
@@ -213,6 +218,7 @@ static class BigExplosionHandler
             explosionObject.transform.parent = null;
             explosionObject.transform.position = targetPos;
             explosionObject.GetComponent<ParticleSystem>().startColor = new Color(131f, 255f, 254f, 1f);
+            explosionObject.GetComponent<ParticleSystem>().startSize = 200f;
             foreach (var sys in explosionObject.GetComponentsInChildren<ParticleSystem>())
             {
                 if (sys.name == "mainFlame" || sys.name == "smokeColumn" || sys.name == "smokeHead" || sys.name == "groundDust")
@@ -228,48 +234,49 @@ static class BigExplosionHandler
             //yield return new WaitForSeconds(6.6f);
             explosionObject.SetActive(true);
             explosionObject.transform.parent = null;
-            float r = 0f;
             List<Actor> empedActors = new List<Actor>();
-            while (r < 100f && explosionObject != null)
+            List<Actor> toNuke = new List<Actor>();
+            Actor.GetActorsInRadius(explosionObject.transform.position, 200f, Teams.Allied, TeamOptions.BothTeams, toNuke);
+            foreach (Actor actor in toNuke)
             {
-                float num = r * r;
-                for (int i = 0; i < TargetManager.instance.allActors.Count; i++) // baha if you're reading this just dm me to take down the mod no need for a cease and desist and/or loiyers
+                if (!empedActors.Contains(actor))
                 {
-                    Actor actor = TargetManager.instance.allActors[i];
-                    if (actor.alive && (actor.position - explosionObject.transform.position).sqrMagnitude < num && actor.transform != explosionObject.transform && !empedActors.Contains(actor))
+                    Debug.Log("Found actor to emp " + actor.actorName);
+                    foreach (var battery in actor.gameObject.GetComponentsInChildren<Battery>(true))
                     {
-                        Debug.Log("Found actor to emp " + actor.actorName);
-                        foreach (var battery in actor.GetComponentsInChildren<Battery>())
-                        {
-                            battery.Drain(battery.maxCharge);
-                            battery.SetConnection(0);
-                            battery.Kill();
-                        }
-                        AIPilot pilot = actor.GetComponent<AIPilot>();
-                        if (pilot)
-                        {
-                            pilot.enabled = false;
-                            if (pilot.autoPilot)
-                            {
-                                pilot.autoPilot.enabled = false;
-                                pilot.aeroController?.SetRandomInputs();
-                            }
-                        }
-                        foreach (ModuleEngine engine in actor.GetComponentsInChildren<ModuleEngine>(true))
-                        {
-                            engine.StopImmediate();
-                            engine.FailEngine();
-                            engine.GetComponent<Health>()?.Kill();
-                        }
-                        Debug.Log("EMP'd actor " + actor.name);
-                        empedActors.Add(actor);
+                        battery.Disconnect();
+                        battery.SetToRemote();
+                        Debug.Log("Destroying battery " + battery.name);
+                        battery.Drain(100f);
+                        battery.Kill();
                     }
+                    foreach (var powerUnit in actor.gameObject.GetComponentsInChildrenImplementing<ObjectPowerUnit>(true))
+                    {
+                        Debug.Log("power unit " + powerUnit.name);
+                        powerUnit.Disconnect();
+                        powerUnit.drain = 100f;
+                    }
+                    AIPilot pilot = actor.GetComponent<AIPilot>();
+                    if (pilot)
+                    {
+                        pilot.enabled = false;
+                        if (pilot.autoPilot)
+                        {
+                            pilot.autoPilot.enabled = false;
+                            pilot.aeroController?.SetRandomInputs();
+                        }
+                    }
+                    foreach (ModuleEngine engine in actor.GetComponentsInChildren<ModuleEngine>(true))
+                    {
+                        engine.StopImmediate();
+                        engine.FailEngine();
+                        engine.GetComponent<Health>()?.Kill();
+                    }
+                    Debug.Log("EMP'd actor " + actor.actorName);
+                    empedActors.Add(actor);
                 }
-                explodeSphereTf.localScale = 2f * r * Vector3.one;
-                r += 343f * Time.deltaTime;
-                yield return new WaitForSeconds(0.01f);
             }
-            explodeSphereTf.gameObject.SetActive(false);
+            yield return new WaitForSeconds(0.01f);
             allHandlers.Remove(this);
             Destroy(this);
             yield break;

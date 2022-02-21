@@ -11,12 +11,18 @@ class Nuke : MonoBehaviour
     {
         if (VTScenario.current != null)
             VTScenario.current.qsMode = QuicksaveManager.QSModes.None;
-        //VTNetEntity entity = GetComponent<VTNetEntity>();
-        //if (entity == null || entity.isMine)
-        GetComponent<Missile>().OnMissileDetonated += DoNukeExplode;
+        Missile ms = GetComponent<Missile>();
+        if (ms != null)
+            ms.OnMissileDetonated += DoNukeExplode;
+        else
+            GetComponent<Rocket>().OnDetonated += DoNukeExplode;
     }
     public static void DoNukeExplode(Missile missile)
     {
-        BigExplosionHandler.DoNukeExplode(missile.transform.position);
+        BigExplosionHandler.DoNukeExplode(missile.transform.position, missile.explodeRadius);
+    }
+    public static void DoNukeExplode(Rocket rocket)
+    {
+        BigExplosionHandler.DoNukeExplode(rocket.transform.position, rocket.radius);
     }
 }
