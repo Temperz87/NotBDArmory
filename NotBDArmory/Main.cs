@@ -44,7 +44,6 @@ public class Armory : VTOLMOD
         if (!patched)
         {
             VTNetworkManager.verboseLogs = true;
-            StreamingAssetsPath = Directory.GetCurrentDirectory() + @"\VTOLVR_ModLoader\mods\";
             HarmonyInstance.Create("tempy.notbdarmory").PatchAll();
             Debug.Log("Try load NBDA prefabs...");
             allCustomWeapons = new Dictionary<string, CustomEqInfo>();
@@ -60,28 +59,33 @@ public class Armory : VTOLMOD
 
     private IEnumerator LoadCustomCustomBundlesAsync() // Special thanks to https://github.com/THE-GREAT-OVERLORD-OF-ALL-CHEESE/Custom-Scenario-Assets/ for this code
     {
-        if (Directory.Exists(StreamingAssetsPath))
+        string address = Directory.GetCurrentDirectory() + @"\VTOLVR_ModLoader\mods\";
+
+        if (Directory.Exists(address))
         {
-            DirectoryInfo info = new DirectoryInfo(StreamingAssetsPath);
+            DirectoryInfo info = new DirectoryInfo(address);
+
             foreach (DirectoryInfo directory in info.GetDirectories())
             {
-                //Debug.Log("Searching " + directory + " for .nbda custom weapons");
-                foreach (FileInfo file in info.GetFiles("*.nbda"))
+                Debug.Log("Searching " + address + directory.Name + " for .nbda");
+                foreach (FileInfo file in directory.GetFiles("*.nbda")) 
                 {
                     Debug.Log("Found nbda " + file.FullName);
                     StartCoroutine(LoadStreamedWeapons(file));
                 }
             }
         }
+        else
+        {
+            Debug.Log(address + " doesn't exist.");
+        }
         yield break;
     }
 
     private IEnumerator LoadStreamedWeapons(FileInfo info)
     {
-
         AssetBundleCreateRequest request = AssetBundle.LoadFromFileAsync(info.FullName);
         yield return request;
-
         if (request.assetBundle != null)
         {
             AssetBundleRequest requestjson = request.assetBundle.LoadAssetAsync("manifest.json");
