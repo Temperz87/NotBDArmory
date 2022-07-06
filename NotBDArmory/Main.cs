@@ -67,16 +67,13 @@ public class Armory : VTOLMOD
     }
     private IEnumerator LoadCustomCustomBundlesAsync() // Special thanks to https://github.com/THE-GREAT-OVERLORD-OF-ALL-CHEESE/Custom-Scenario-Assets/ for this code
     {
-            DirectoryInfo info = new DirectoryInfo(Directory.GetCurrentDirectory());
-            foreach (DirectoryInfo directory in info.GetDirectories())
-            {
-                Debug.Log("Searching " + directory + " for .nbda custom weapons");
-                foreach (FileInfo file in info.GetFiles("*.nbda"))
-                {
-                    Debug.Log("Found .nbda " + file.FullName);
-                    StartCoroutine(LoadStreamedWeapons(file));
-                }
-            }
+        DirectoryInfo info = new DirectoryInfo(Directory.GetCurrentDirectory());
+        Debug.Log("Searching " + Directory.GetCurrentDirectory() + " for .nbda custom weapons");
+        foreach (FileInfo file in info.GetFiles("*.nbda", SearchOption.AllDirectories))
+        {
+            Debug.Log("Found .nbda " + file.FullName);
+            StartCoroutine(LoadStreamedWeapons(file));
+        }
         yield break;
     }
 
@@ -261,12 +258,12 @@ public class Armory : VTOLMOD
 
 
 
-        LoadGeneric(weaponObject, "26B_AIR-2 Genie", VehicleCompat.FA26B, false, true, null) ;
+        LoadGeneric(weaponObject, "26B_AIR-2 Genie", VehicleCompat.FA26B, false, true, null);
         LoadGeneric(f45, "F45_AIR-2 Genie", VehicleCompat.F45A, false, true, "5,6,7,8,9,10,11,12,13,14,15");
         weaponObject.SetActive(false);
         Debug.Log("Loaded AIR-2");
     }
-    
+
     private void LoadCGT(GameObject weaponObject)
     {
         GameObject cgt = LoadGeneric(weaponObject, "ConformalGunTank", VehicleCompat.F45A, false, false, null);
