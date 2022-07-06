@@ -21,7 +21,7 @@ class HPEquipSRB : HPEquippable, IMassObject, IParentRBDependent
 
     public HPEquipSRB()
     {
-        name = "Flight Assist Solid Rocket Booster";
+        fullName = "Flight Assist Solid Rocket Booster";
         shortName = "SRB";
         unitCost = 1500f;
         description = "A one-time use booster that's used to increase the total thrust of your aircraft once ignited. Once it's activated, it cannot be stopped.";

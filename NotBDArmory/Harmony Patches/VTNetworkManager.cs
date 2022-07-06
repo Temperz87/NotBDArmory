@@ -1,4 +1,5 @@
 ﻿using Harmony;
+using System;
 using UnityEngine;
 using VTNetworking;
 
@@ -29,16 +30,22 @@ public static class Ensure_PrefabNotEnabled
     {
         if (resourcePath.Contains("NotBDArmory"))
         {
-            if (VTNetworkManager.verboseLogs)
-                Debug.Log("re instantiate prefab " + resourcePath + " and __result active is " + __result.activeSelf);
-            if (__result.activeSelf)
-                Debug.LogError("Prefab " + resourcePath + " was already active");
-            GameObject old = __result;
-            __result = GameObject.Instantiate(__result);
-            if (__result.activeSelf)
-                Debug.LogError("Instantiation made new prefab active " + resourcePath);
-            if (old.activeSelf)
-                Debug.LogError("Instantiation made old prefab active " + resourcePath);
+            try
+            {
+                Armory.MPDebugLog("re instantiate prefab " + resourcePath + " and __result active is " + __result.activeSelf);
+                if (__result.activeSelf)
+                    Debug.LogError("Prefab " + resourcePath + " was already active");
+                GameObject old = __result;
+                __result = GameObject.Instantiate(__result);
+                if (__result.activeSelf)
+                    Debug.LogError("Instantiation made new prefab active " + resourcePath);
+                if (old.activeSelf)
+                    Debug.LogError("Instantiation made old prefab active " + resourcePath);
+            }
+            catch (NullReferenceException e)
+            {
+                return;
+            }
         }
     }
 }

@@ -27,6 +27,7 @@ public class CustomEqInfo
         string name = weaponObject.name;
         if (name.Contains("(Clone)"))
             name = weaponObject.name.Substring(0, weaponObject.name.IndexOf("(Clone)"));
+            Armory.MPDebugLog("Registering resource NotBDArmory/" + name);
         VTNetworkManager.RegisterOverrideResource("NotBDArmory/" + name, weaponObject);
         if (equip is HPEquipMissileLauncher)
         {
@@ -35,11 +36,12 @@ public class CustomEqInfo
                 HPEquipMissileLauncher launcher = equip as HPEquipMissileLauncher;
                 if (!launcher.missileResourcePath.Contains("NotBDArmory/"))
                     launcher.missileResourcePath = "NotBDArmory/" + name + "Missile";
-                VTNetworkManager.RegisterOverrideResource(launcher.missileResourcePath, GameObject.Instantiate(launcher.ml.missilePrefab));
+                    Armory.MPDebugLog("Registering missile resource " + launcher.missileResourcePath);
+                VTNetworkManager.RegisterOverrideResource(launcher.missileResourcePath,launcher.ml.missilePrefab);
             }
             catch (NullReferenceException e)
             {
-                Debug.Log("Caught NRE while trying to add missile launcher path to override resources, of launcher " + name + " stack trace,");
+                Debug.Log("Caught NRE while trying to add missile launcher path to override resources, of launcher " + name + ".");
             }
         }
     }

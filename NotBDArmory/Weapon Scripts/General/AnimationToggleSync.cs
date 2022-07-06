@@ -46,7 +46,7 @@ class AnimationToggleSync : VTNetSyncRPCOnly
     public void Toggle(int state)
     {
         bool deployed = state == 1;
-        if (deployed != lastDeployed)
+        if (deployed != (bool)toggleTraverse.Field("deployed").GetValue())
         {
             lastDeployed = deployed;
             toggle.Toggle();

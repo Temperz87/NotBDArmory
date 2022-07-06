@@ -13,7 +13,6 @@ using Valve.Newtonsoft.Json.Linq;
 public class Armory : VTOLMOD
 {
     private static bool patched = false;
-    private static string StreamingAssetsPath;
     public static Loadout sloadout;
     public static Dictionary<string, CustomEqInfo> allCustomWeapons = null;
     public static string[] customweaponames = {
@@ -34,7 +33,11 @@ public class Armory : VTOLMOD
         "MK85x1",
         "MOABx1",
         "ConformalGunTank",
-        "AIR-2 Genie"
+        "AIR-2 Genie",
+        //"UnChase",
+        "Python5IRx1",
+        "42 tank"
+        //"FAB-9000x1" this one is dumb, sorry bot :P
         //"HYCMx1" this one is shelved until awacs missile gets implemented
         //"CJSM-69_Geiravorx1" this one is just tedious :P
     };
@@ -44,7 +47,6 @@ public class Armory : VTOLMOD
         if (!patched)
         {
             VTNetworkManager.verboseLogs = true;
-            StreamingAssetsPath = Directory.GetCurrentDirectory() + @"\VTOLVR_ModLoader\mods\";
             HarmonyInstance.Create("tempy.notbdarmory").PatchAll();
             Debug.Log("Try load NBDA prefabs...");
             allCustomWeapons = new Dictionary<string, CustomEqInfo>();
@@ -58,21 +60,23 @@ public class Armory : VTOLMOD
         base.ModLoaded();
     }
 
+    public static void MPDebugLog(string msg)
+    {
+        if (VTNetworkManager.verboseLogs)
+            Debug.Log(msg);
+    }
     private IEnumerator LoadCustomCustomBundlesAsync() // Special thanks to https://github.com/THE-GREAT-OVERLORD-OF-ALL-CHEESE/Custom-Scenario-Assets/ for this code
     {
-        if (Directory.Exists(StreamingAssetsPath))
-        {
-            DirectoryInfo info = new DirectoryInfo(StreamingAssetsPath);
+            DirectoryInfo info = new DirectoryInfo(Directory.GetCurrentDirectory());
             foreach (DirectoryInfo directory in info.GetDirectories())
             {
-                //Debug.Log("Searching " + directory + " for .nbda custom weapons");
+                Debug.Log("Searching " + directory + " for .nbda custom weapons");
                 foreach (FileInfo file in info.GetFiles("*.nbda"))
                 {
-                    Debug.Log("Found nbda " + file.FullName);
+                    Debug.Log("Found .nbda " + file.FullName);
                     StartCoroutine(LoadStreamedWeapons(file));
                 }
             }
-        }
         yield break;
     }
 
@@ -200,8 +204,13 @@ public class Armory : VTOLMOD
                 case "MK85x1":
                     LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, false, null);
                     break;
+                case "FAB-9000x1":
+                    //LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, false, null);
+                    break;
                 case "MOABx1":
-                    LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, true, null).GetComponent<MissileLauncher>().missilePrefab.AddComponent<AirburstMissile>();
+                    GameObject prefab = LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, true, null).GetComponent<MissileLauncher>().missilePrefab;
+                    prefab.AddComponent<AirburstMissile>();
+                    prefab.AddComponent<MissilePSOnDeath>();
                     break;
                 case "CJSM-69_Geiravorx1":
                     //LoadGeneric(weaponObject, weaponName, VehicleCompat.FA26B, false, false);
@@ -215,12 +224,23 @@ public class Armory : VTOLMOD
                 case "AIR-2 Genie":
                     LoadGenie(weaponObject);
                     break;
+                case "UnChase":
+                    LoadChaseLaser(weaponObject);
+                    break;
+                case "Python5IRx1":
+                case "Python5Radarx1":
+                    LoadGeneric(weaponObject, weaponName, VehicleCompat.F45A, false, false, null);
+                    break;
+                case "42 tank":
+                    LoadGeneric(weaponObject, weaponName, VehicleCompat.AV42C, false, false, null);
+                    break;
                 default:
                     Debug.LogError(name + " has not been implemented yet but is inside of custom weapon names."); // this should never occur
                     break;
             }
             weaponObject.SetActive(false);
         }
+        bundle.Unload(false);
         Debug.Log("Done loading prefabs.");
     }
 
@@ -287,6 +307,27 @@ public class Armory : VTOLMOD
         SRB42.SetActive(false);
         Debug.Log("Loaded Flight Assist Solid Rocket Booster");
         yield break;
+    }
+
+    private void LoadChaseLaser(GameObject weaponObject)
+    {
+        GameObject TLS = weaponObject;
+        TLS.AddComponent<HPEquipLaserTurret>();
+        TLS.AddComponent<AnimateOnEquip>();
+        //TLS.AddComponent<HeatGlow>();
+        VTNetEntity entity = TLS.GetComponent<VTNetEntity>();
+        entity.netSyncs.Add(TLS.AddComponent<LaserSync>());
+        entity.netSyncs.Add(TLS.AddComponent<AnimationToggleSync>());
+        //entity.netSyncs.Add(TLS.AddComponent<AnimationToggleSync>());
+        foreach (AudioSource source in TLS.GetComponentsInChildren<AudioSource>(true))
+        {
+            source.outputAudioMixerGroup = VTResources.GetExteriorMixerGroup();
+        }
+        DontDestroyOnLoad(TLS);
+        allCustomWeapons.Add("UnChase", new CustomEqInfo(TLS, VehicleCompat.FA26B, false, true, null));
+        TLS.SetActive(false);
+
+        Debug.Log("Loaded Tactical Laser System Chase");
     }
 
     private IEnumerator LoadLaser(GameObject weaponObject)

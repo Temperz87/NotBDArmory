@@ -15,13 +15,15 @@ class HPEquipLaser : HPEquippable, IMassObject
     private Transform fireTf;
     private AudioSource source;
     private static int layerMask = LayerMask.GetMask("Hitbox");
-    private const float laseDistance = 7500f;
+    protected const float laseDistance = 7500f;
     private float charge = 350f;
+    private float damage = 30f;
     //private HeatGlow glow;
     //private AnimationToggle toggle;
     private bool lastDeployed = false;
     private HeatEmitter emitter;
     private ParticleSystem[] systems;
+    private VehiclePart[] parts;
 
     public BoolEvent firedEvent = new BoolEvent();
 
@@ -44,7 +46,10 @@ class HPEquipLaser : HPEquippable, IMassObject
         base.Awake();
         if (fireTf == null)
         {
-            fireTf = transform.Find("TLS").Find("Emitter");
+            if (transform.Find("TLS") != null)
+                fireTf = transform.Find("TLS").Find("Emitter");
+            else
+                fireTf = transform.Find("WIPAntiChaseGun").Find("TLS").Find("Azimuth").Find("Elevation").Find("fireTf");
             laserRenderer = transform.Find("Laser").GetComponent<LineRenderer>();
             laserRenderer.gameObject.SetActive(false);
             source = fireTf.GetComponent<AudioSource>();
@@ -59,12 +64,15 @@ class HPEquipLaser : HPEquippable, IMassObject
         emitter = GetComponentInChildren<HeatEmitter>();
 
         systems = fireTf.GetComponentsInChildren<ParticleSystem>(false);
-        systems.SetEmission(false);
+        if (systems != null)
+            systems.SetEmission(false);
     }
 
     public override void SetWeaponManager(WeaponManager wm)
     {
         base.SetWeaponManager(wm);
+        parts = wm.gameObject.GetComponentsInChildren<VehiclePart>(true);
+        return;
         AeroController.ControlSurfaceTransform atf = wm.gameObject.GetComponent<AeroController>().controlSurfaces[14];
         atf.transform = transform.Find("TLS").Find("AirBrake");
         atf.axis = new Vector3(1f, 0f, 0f);
@@ -97,12 +105,12 @@ class HPEquipLaser : HPEquippable, IMassObject
         atf.axis = new Vector3(-1f, 0f, 0f);
     }
 
-    private void LateUpdate()
-    { 
+    protected virtual void LateUpdate()
+    {
         if (!fire)
         {
             if (charge < 350)
-                charge = Mathf.Clamp(charge + (350 * Time.deltaTime)/4f, 0, 350); // recharges over 4 seconds
+                charge = Mathf.Clamp(charge + (350 * Time.deltaTime) / 4f, 0, 350); // recharges over 4 seconds
             //if (lastDeployed && glow.temperature == 0f)
             //{
             //    toggle.Toggle();
@@ -122,21 +130,27 @@ class HPEquipLaser : HPEquippable, IMassObject
             }
             return;
         }
-        charge = Mathf.Clamp(charge - (350 * Time.deltaTime)/4.5f, 0, 350);
+        charge = Mathf.Clamp(charge - (350 * Time.deltaTime) / 4.5f, 0, 350);
         laserRenderer.SetPosition(0, fireTf.position);
         if (Physics.SphereCast(fireTf.position, .2f, fireTf.forward, out RaycastHit info, laseDistance, layerMask))
         {
             laserRenderer.SetPosition(1, fireTf.position + info.distance * fireTf.forward);
             Hitbox box = info.collider.GetComponent<Hitbox>();
             if (box != null && !(box.actor && box.actor == weaponManager.actor))
-                box.Damage((30f * Time.deltaTime)/.12f, info.point, Health.DamageTypes.Impact, null, "Laser");
+            {
+                box.Damage((damage * Time.deltaTime) / .12f, info.point, Health.DamageTypes.Impact, weaponManager.actor, "Laser");
+                if (fireTf.parent.name == "Elevation" && parts != null)
+                    foreach (VehiclePart part in parts)
+                        part?.health.Heal(damage / parts.Length);
+            }
             else
                 laserRenderer.SetPosition(1, GetAimPoint());
         }
         else
             laserRenderer.SetPosition(1, GetAimPoint());
         //glow.AddHeat();
-        emitter.AddHeat(Time.deltaTime * .025f);
+        if (emitter)
+            emitter.AddHeat(Time.deltaTime * .025f);
         if (!lastDeployed)
         {
             //toggle.Toggle();
@@ -159,7 +173,8 @@ class HPEquipLaser : HPEquippable, IMassObject
         laserRenderer.gameObject.SetActive(true);
         source.Play();
         firedEvent.Invoke(true);
-        systems.SetEmission(true);
+        if (systems != null)
+            systems.SetEmission(true);
         LateUpdate(); // so the laser will be in the correct spot on fire
     }
 
@@ -169,7 +184,8 @@ class HPEquipLaser : HPEquippable, IMassObject
         fire = false;
         laserRenderer.gameObject.SetActive(false);
         source.Stop();
-        systems.SetEmission(false);
+        if (systems != null)
+            systems.SetEmission(false);
         firedEvent.Invoke(false);
     }
 

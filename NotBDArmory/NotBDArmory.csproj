@@ -87,16 +87,21 @@
     <Compile Include="Harmony Patches\VTMPMainMenu.cs" />
     <Compile Include="Harmony Patches\VTMPScenarioSettings.cs" />
     <Compile Include="Harmony Patches\VTNetworkManager.cs" />
+    <Compile Include="Weapon Scripts\AGM9K\HPEquipHeadtrackOML.cs" />
     <Compile Include="Weapon Scripts\EMP\EMP.cs" />
     <Compile Include="Weapon Scripts\General\AirburstMissile.cs" />
     <Compile Include="Weapon Scripts\General\AnimateOnEquip.cs" />
     <Compile Include="Weapon Scripts\CGT\CGT.cs" />
+    <Compile Include="Weapon Scripts\General\HeadTrackEquip.cs" />
     <Compile Include="Weapon Scripts\General\HeatGlowOnShoot.cs" />
     <Compile Include="Weapon Scripts\General\AnimationToggleSync.cs" />
     <Compile Include="Weapon Scripts\AIR2\GenieRocket.cs" />
+    <Compile Include="Weapon Scripts\General\MissilePSOnDeath.cs" />
     <Compile Include="Weapon Scripts\Howitzer\Howitzer.cs" />
     <Compile Include="Weapon Scripts\ADMM\HPEquipAllDirectionalMissileLauncher.cs" />
     <Compile Include="Weapon Scripts\Nuke\Nuke.cs" />
+    <Compile Include="Weapon Scripts\Rocket Gun.cs" />
+    <Compile Include="Weapon Scripts\Swarm Gun\HPEquipSwarmGun.cs" />
     <Compile Include="Weapon Scripts\TLS\HPEquipLaser.cs" />
     <Compile Include="Harmony Patches\WeaponManager.cs" />
     <Compile Include="Weapon Scripts\BigExplosionHandler.cs" />
@@ -111,6 +116,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Weapon Scripts\Railgun\RailGun.cs" />
     <Compile Include="Weapon Scripts\SRB\SRBSync.cs" />
+    <Compile Include="Weapon Scripts\TLS\HPEquipLaserTurret.cs" />
     <Compile Include="Weapon Scripts\TLS\Laser Sync.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

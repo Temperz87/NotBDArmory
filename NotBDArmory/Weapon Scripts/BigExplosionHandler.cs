@@ -189,6 +189,7 @@ static class BigExplosionHandler
                 yield return new WaitForSeconds(0.01f);
             }
             float t = 0;
+            yield return new WaitForSeconds(0.02f); // 200ms is average reaction time, so people should notice a lil stop instead of instant shrinking
             while (t < 5f && explosionObject != null)
             {
                 t += Time.deltaTime;
@@ -246,13 +247,11 @@ static class BigExplosionHandler
                     {
                         battery.Disconnect();
                         battery.SetToRemote();
-                        Debug.Log("Destroying battery " + battery.name);
                         battery.Drain(100f);
                         battery.Kill();
                     }
                     foreach (var powerUnit in actor.gameObject.GetComponentsInChildrenImplementing<ObjectPowerUnit>(true))
                     {
-                        Debug.Log("power unit " + powerUnit.name);
                         powerUnit.Disconnect();
                         powerUnit.drain = 100f;
                     }
@@ -272,7 +271,7 @@ static class BigExplosionHandler
                         engine.FailEngine();
                         engine.GetComponent<Health>()?.Kill();
                     }
-                    Debug.Log("EMP'd actor " + actor.actorName);
+                    //Debug.Log("EMP'd actor " + actor.actorName);
                     empedActors.Add(actor);
                 }
             }

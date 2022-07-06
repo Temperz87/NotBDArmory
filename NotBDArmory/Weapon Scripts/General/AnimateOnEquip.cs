@@ -12,12 +12,12 @@ class AnimateOnEquip : MonoBehaviour
 {
     private AnimationToggle toggle;
     private Traverse toggleTraverse;
-    private HPEquipGun equip;
+    private HPEquippable equip;
     private WeaponManager wm;
 
     private void Awake()
     {
-        this.equip = gameObject.GetComponent<HPEquipGun>();
+        this.equip = gameObject.GetComponent<HPEquippable>();
         if (equip == null)
             Debug.LogError("equip is null on object " + gameObject.name);
         equip.OnEquipped += yoinkWM;
